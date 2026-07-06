@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patio Almeyda — Dashboard de Negocio</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg: #0d0d14;
+    --card: #181824;
+    --card2: #1e1e2e;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --text: #e8e8f0;
+    --text-muted: #8888aa;
+    --border: #2a2a3e;
+    --red: #e05555;
+    --green: #4caf82;
+    --blue: #5599ff;
+    --purple: #9966ff;
+    --sidebar-w: 220px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow-x: hidden; }
+
+  /* SIDEBAR */
+  #sidebar {
+    position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+    background: var(--card); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 100; transition: transform .3s;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 { font-size: 1.15rem; color: var(--gold); font-weight: 700; }
+  .sidebar-logo p { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+  .sidebar-nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 0.88rem; color: var(--text-muted);
+    transition: all .2s; margin-bottom: 4px; text-decoration: none;
+  }
+  .nav-item:hover { background: var(--card2); color: var(--text); }
+  .nav-item.active { background: rgba(201,168,76,.15); color: var(--gold); }
+  .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+  .sidebar-footer { padding: 12px 20px; border-top: 1px solid var(--border); font-size: 0.7rem; color: var(--text-muted); }
+
+  /* HAMBURGER */
+  #hamburger {
+    display: none; position: fixed; top: 14px; left: 14px; z-index: 200;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; cursor: pointer; color: var(--gold); font-size: 1.2rem;
+  }
+  #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 99; }
+
+  /* MAIN */
+  #main { margin-left: var(--sidebar-w); min-height: 100vh; }
+
+  /* HEADER */
+  .page-header {
+    padding: 32px 36px 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 0;
+  }
+  .page-header h2 { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+  .page-header p { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* SECTIONS */
+  .section { display: none; }
+  .section.active { display: block; }
+  .section-content { padding: 28px 36px 48px; }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .kpi-card {
+    background: var(--card); border-radius: 14px; padding: 20px;
+    border: 1px solid var(--border); position: relative; overflow: hidden;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+  }
+  .kpi-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .kpi-value { font-size: 1.6rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .kpi-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+  .kpi-icon { position: absolute; top: 16px; right: 16px; font-size: 1.4rem; opacity: .3; }
+
+  /* CHARTS */
+  .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 24px; }
+  .chart-card {
+    background: var(--card); border-radius: 14px; padding: 22px;
+    border: 1px solid var(--border);
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-card h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .chart-card p { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+
+  /* TOGGLE BUTTONS */
+  .toggle-group { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toggle-btn {
+    padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+    transition: all .2s;
+  }
+  .toggle-btn.active { background: var(--gold); border-color: var(--gold); color: #111; font-weight: 600; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead th {
+    background: var(--card2); padding: 12px 14px; text-align: left;
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted); cursor: pointer; user-select: none;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  thead th:hover { color: var(--gold); }
+  tbody tr { border-bottom: 1px solid rgba(42,42,62,.5); transition: background .15s; }
+  tbody tr:hover { background: rgba(255,255,255,.03); }
+  tbody td { padding: 11px 14px; color: var(--text); white-space: nowrap; }
+  .td-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .td-gold { color: var(--gold); font-weight: 600; }
+  .td-muted { color: var(--text-muted); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: .03em;
+  }
+  .badge-red { background: rgba(224,85,85,.2); color: #ff7777; border: 1px solid rgba(224,85,85,.3); }
+  .badge-yellow { background: rgba(255,193,7,.15); color: #ffcc44; border: 1px solid rgba(255,193,7,.25); }
+  .badge-green { background: rgba(76,175,130,.15); color: #66cc99; border: 1px solid rgba(76,175,130,.25); }
+
+  /* RECOMENDACIONES */
+  .recs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+  .rec-card {
+    background: var(--card); border-radius: 14px; padding: 22px;
+    border: 1px solid var(--border); transition: transform .2s;
+  }
+  .rec-card:hover { transform: translateY(-2px); }
+  .rec-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .rec-icon { font-size: 1.8rem; }
+  .rec-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .rec-body { font-size: 0.83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 12px; }
+  .rec-action {
+    background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.2);
+    border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; color: var(--gold-light); margin-bottom: 12px;
+  }
+  .rec-action strong { display: block; margin-bottom: 3px; color: var(--gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: .04em; }
+  .rec-footer { display: flex; align-items: center; justify-content: space-between; }
+  .rec-impact { font-size: 0.75rem; color: var(--text-muted); }
+
+  /* CATEGORY TABLE */
+  .cat-row-bar {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin-top: 4px;
+  }
+
+  /* DIVIDER */
+  .section-divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #hamburger { display: block; }
+    #overlay.open { display: block; }
+    #main { margin-left: 0; }
+    .section-content { padding: 20px 18px 40px; }
+    .page-header { padding: 60px 18px 16px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .recs-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-value { font-size: 1.25rem; }
+  }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HAMBURGER -->
+<button id="hamburger" onclick="toggleSidebar()">☰</button>
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>🍸 Patio Almeyda</h1>
+    <p>Dashboard de Negocio · 2021–2026</p>
+  </div>
+  <div class="sidebar-nav">
+    <a class="nav-item active" onclick="showSection('resumen')" href="#">
+      <span class="icon">📊</span> Resumen
+    </a>
+    <a class="nav-item" onclick="showSection('ventas')" href="#">
+      <span class="icon">📈</span> Ventas
+    </a>
+    <a class="nav-item" onclick="showSection('productos')" href="#">
+      <span class="icon">🍹</span> Productos
+    </a>
+    <a class="nav-item" onclick="showSection('operaciones')" href="#">
+      <span class="icon">⚙️</span> Operaciones
+    </a>
+    <a class="nav-item" onclick="showSection('equipo')" href="#">
+      <span class="icon">👥</span> Equipo
+    </a>
+    <a class="nav-item" onclick="showSection('financiero')" href="#">
+      <span class="icon">💰</span> Financiero & Caja
+    </a>
+    <a class="nav-item" onclick="showSection('contexto')" href="#">
+      <span class="icon">🌎</span> Contexto & Mercado
+    </a>
+    <a class="nav-item" onclick="showSection('recomendaciones')" href="#">
+      <span class="icon">💡</span> Recomendaciones
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    Actualizado: 6 julio 2026<br>
+    Período: jul 2021 – jul 2026
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+  <!-- =================== RESUMEN =================== -->
+  <div id="section-resumen" class="section active">
+    <div class="page-header">
+      <h2>Resumen General</h2>
+      <p>Desempeño global del negocio · jul 2021 – jul 2026</p>
+    </div>
+    <div class="section-content">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Ingresos Anuales</h3>
+          <p>Total facturado por año calendario</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartAnualResumen"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Evolución Ticket Promedio</h3>
+          <p>Ticket por boleta 2021–2026 (en miles $)</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartTicketResumen"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== VENTAS =================== -->
+  <div id="section-ventas" class="section">
+    <div class="page-header">
+      <h2>Análisis de Ventas</h2>
+      <p>Evolución histórica, estacionalidad y comparativos interanuales</p>
+    </div>
+    <div class="section-content">
+      <!-- Ingresos por año con ticket -->
+      <div class="chart-card full" style="margin-bottom:20px">
+        <h3>Ingresos por Año vs Ticket Promedio</h3>
+        <p>Barras = ingresos (eje izq.) · Línea = ticket promedio por boleta (eje der.)</p>
+        <div class="chart-wrap" style="height:300px"><canvas id="chartAnualVentas"></canvas></div>
+      </div>
+      <!-- Serie mensual toggle -->
+      <div class="chart-card full" style="margin-bottom:20px">
+        <h3>Serie Mensual jul 2021 – jul 2026</h3>
+        <p>Vista de área — selecciona métrica</p>
+        <div class="toggle-group" id="toggleGrupoSerie">
+          <button class="toggle-btn active" onclick="toggleSerie('ingresos',this)">Ingresos</button>
+          <button class="toggle-btn" onclick="toggleSerie('boletas',this)">Boletas</button>
+          <button class="toggle-btn" onclick="toggleSerie('clientes',this)">Clientes</button>
+        </div>
+        <div class="chart-wrap" style="height:280px"><canvas id="chartSerieMensual"></canvas></div>
+      </div>
+      <div class="charts-grid">
+        <!-- Estacionalidad -->
+        <div class="chart-card">
+          <h3>Estacionalidad por Mes</h3>
+          <p>Promedio histórico de ingresos por mes del año</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartEstacional"></canvas></div>
+        </div>
+        <!-- Comparativo años -->
+        <div class="chart-card">
+          <h3>Comparativo Año a Año</h3>
+          <p>Ingresos por mes según año (misma escala)</p>
+          <div class="toggle-group">
+            <button class="toggle-btn active" onclick="toggleCompYear('all',this)">Todos</button>
+            <button class="toggle-btn" onclick="toggleCompYear('2022',this)">2022</button>
+            <button class="toggle-btn" onclick="toggleCompYear('2023',this)">2023</button>
+            <button class="toggle-btn" onclick="toggleCompYear('2024',this)">2024</button>
+            <button class="toggle-btn" onclick="toggleCompYear('2025',this)">2025</button>
+            <button class="toggle-btn" onclick="toggleCompYear('2026',this)">2026</button>
+          </div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chartCompAnios"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PRODUCTOS =================== -->
+  <div id="section-productos" class="section">
+    <div class="page-header">
+      <h2>Análisis de Productos</h2>
+      <p>Categorías, top productos y evolución del mix de ventas</p>
+    </div>
+    <div class="section-content">
+      <!-- Mix categorías -->
+      <div class="chart-card full" style="margin-bottom:20px">
+        <h3>Mix por Categoría</h3>
+        <p>Distribución de ingresos, cantidad y margen por categoría</p>
+        <div style="display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start">
+          <div class="chart-wrap" style="height:280px"><canvas id="chartDonutCat"></canvas></div>
+          <div class="table-wrap" id="catTable"></div>
+        </div>
+      </div>
+      <!-- Top productos -->
+      <div class="chart-card full" style="margin-bottom:20px">
+        <h3>Top 20 Productos por Ingresos</h3>
+        <p>Color de barra según margen bruto % (verde alto / rojo bajo)</p>
+        <div class="chart-wrap" style="height:480px"><canvas id="chartTopProd"></canvas></div>
+      </div>
+      <!-- Evolución categorías -->
+      <div class="chart-card full">
+        <h3>Evolución Top 6 Categorías por Año</h3>
+        <p>Ingresos por categoría 2021–2025</p>
+        <div class="chart-wrap" style="height:300px"><canvas id="chartEvoCat"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== OPERACIONES =================== -->
+  <div id="section-operaciones" class="section">
+    <div class="page-header">
+      <h2>Operaciones</h2>
+      <p>Patrones temporales, medios de pago y descuentos</p>
+    </div>
+    <div class="section-content">
+      <div class="charts-grid">
+        <!-- Día de semana -->
+        <div class="chart-card">
+          <h3>Ingresos por Día de Semana</h3>
+          <p>Total histórico jul 2021 – jul 2026</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartDias"></canvas></div>
+        </div>
+        <!-- Distribución horaria -->
+        <div class="chart-card">
+          <h3>Distribución Horaria de Ventas</h3>
+          <p>Ingresos por hora del día (16:00 → 04:00)</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartHoras"></canvas></div>
+        </div>
+        <!-- Medios de pago -->
+        <div class="chart-card">
+          <h3>Medios de Pago</h3>
+          <p>Distribución por tipo de pago</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartPagos"></canvas></div>
+        </div>
+        <!-- Descuentos -->
+        <div class="chart-card">
+          <h3>Evolución de Descuentos %</h3>
+          <p>Porcentaje de descuentos/cortesías sobre ventas brutas por año</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartDescuentos"></canvas></div>
+        </div>
+      </div>
+      <!-- Stats días tabla -->
+      <div class="chart-card full">
+        <h3>Detalle por Día de Semana</h3>
+        <p>Métricas completas por día</p>
+        <div class="table-wrap">
+          <div id="tablaDiasWrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== EQUIPO =================== -->
+  <div id="section-equipo" class="section">
+    <div class="page-header">
+      <h2>Equipo de Servicio</h2>
+      <p>Rendimiento de meseros — click en columnas para ordenar</p>
+    </div>
+    <div class="section-content">
+      <div class="chart-card full">
+        <div class="table-wrap">
+          <div id="tablaMeserosWrap"></div>
+        </div>
+      </div>
+      <div class="charts-grid" style="margin-top:20px">
+        <div class="chart-card">
+          <h3>Ventas por Mesero</h3>
+          <p>Total de ventas históricas</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartMeserosVentas"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Ticket Promedio por Mesero</h3>
+          <p>Promedio por orden (incluye diferencias de rango/sección)</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartMeserosTicket"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== FINANCIERO & CAJA =================== -->
+  <div id="section-financiero" class="section">
+    <div class="page-header">
+      <h2>Financiero & Caja</h2>
+      <p>P&amp;L, márgenes, costos, propinas, duración de visitas y productividad operacional</p>
+    </div>
+    <div class="section-content">
+
+      <!-- KPIs financieros -->
+      <div class="kpi-grid" id="kpiFinGrid"></div>
+
+      <!-- Fila 1: Waterfall P&L + Evolución Food Cost -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Estructura P&amp;L por Año</h3>
+          <p>Neto = Costo Mercadería + Margen Bruto — valores en millones $</p>
+          <div class="chart-wrap" style="height:300px"><canvas id="chartPnlAnio"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Evolución Food Cost % vs Margen Bruto %</h3>
+          <p>Porcentaje sobre ingresos netos por año</p>
+          <div class="chart-wrap" style="height:300px"><canvas id="chartFoodCostEv"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 2: Composición órdenes + Duración visitas -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Composición de Órdenes</h3>
+          <p>¿Qué combinan los clientes? — % de boletas y ticket promedio</p>
+          <div style="display:flex;align-items:center;gap:24px;padding:8px 0">
+            <div style="width:220px;height:220px;flex-shrink:0"><canvas id="chartCompOrdenes"></canvas></div>
+            <div id="tablaCompOrdenes" style="flex:1;font-size:0.82rem"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Distribución Duración de Visita</h3>
+          <p>Cantidad de mesas por rango horario — línea = ticket promedio</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartDuracion"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 3: Productividad operacional -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Productividad por Año</h3>
+          <p>Órdenes/noche, Clientes/noche e Ingresos/noche</p>
+          <div class="chart-wrap" style="height:270px"><canvas id="chartProdOp"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Food Cost % por Categoría</h3>
+          <p>Costo de mercadería como % del ingreso neto — menor = mejor margen</p>
+          <div class="chart-wrap" style="height:270px"><canvas id="chartFcCat"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 4: Propinas + Tipos fiscales -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Propinas por Día de Semana</h3>
+          <p>Monto total histórico y % sobre venta neta</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartPropDia"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Descuentos vs Propinas vs IVA por Año</h3>
+          <p>Comparativa de ítems clave del ticket</p>
+          <div class="chart-wrap" style="height:260px"><canvas id="chartTicketComp"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 5: Top mesas + tipos fiscales -->
+      <div class="charts-grid">
+        <div class="chart-card" style="grid-column:span 2">
+          <h3>Top 15 Mesas por Ingresos</h3>
+          <p>Acumulado histórico — ticket promedio incluye propina</p>
+          <div id="tablaMesas" style="overflow-x:auto;margin-top:12px"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =================== CONTEXTO & MERCADO =================== -->
+  <div id="section-contexto" class="section">
+    <div class="page-header">
+      <h2>Contexto & Mercado</h2>
+      <p>Correlación de ventas con indicadores macro de Chile y eventos clave · jul 2022 – jun 2026</p>
+    </div>
+    <div class="section-content">
+
+      <!-- KPIs de correlación -->
+      <div class="kpi-grid" id="kpiCtxGrid"></div>
+
+      <!-- Fila 1: Ventas vs IMACEC + Ventas nominal vs real -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Ventas (var % anual) vs IMACEC</h3>
+          <p>Crecimiento interanual de ventas del bar contra actividad económica de Chile</p>
+          <div class="chart-wrap" style="height:290px"><canvas id="chartCtxImacec"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Crecimiento Nominal vs Real (descontando IPC)</h3>
+          <p>Cuánto del crecimiento de ventas es inflación de precios y cuánto es volumen real</p>
+          <div class="chart-wrap" style="height:290px"><canvas id="chartCtxReal"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 2: Desempleo + Dólar -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Ventas vs Tasa de Desempleo</h3>
+          <p>Desempleo nacional (trimestre móvil INE) — eje derecho invertido para lectura directa</p>
+          <div class="chart-wrap" style="height:270px"><canvas id="chartCtxDesempleo"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Ventas vs Dólar Observado (USD/CLP)</h3>
+          <p>Promedio mensual BCCh — dólar alto encarece insumos importados</p>
+          <div class="chart-wrap" style="height:270px"><canvas id="chartCtxUsd"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Fila 3: Timeline eventos -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card" style="grid-column:span 2">
+          <h3>Eventos Clave y su Efecto Real en Ventas</h3>
+          <p>Impacto esperado según prensa/calendario vs variación efectiva del mes (m/m = vs mes anterior, a/a = vs mismo mes año anterior)</p>
+          <div id="tablaEventos" style="overflow-x:auto;margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- Fila 4: Conclusiones -->
+      <div class="charts-grid">
+        <div class="chart-card" style="grid-column:span 2">
+          <h3>Lectura del Análisis</h3>
+          <div id="ctxInsights" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:12px"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =================== RECOMENDACIONES =================== -->
+  <div id="section-recomendaciones" class="section">
+    <div class="page-header">
+      <h2>Recomendaciones Estratégicas</h2>
+      <p>Insights accionables basados en el análisis de datos 2021–2026</p>
+    </div>
+    <div class="section-content">
+      <div class="recs-grid" id="recsGrid"></div>
+    </div>
+  </div>
+
+</div><!-- end #main -->
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+// DATOS FINANCIEROS & CAJA
+// ============================================================
+const DFIN = {"kpis": {"margen_bruto_total": 2290778366, "margen_bruto_pct": 78.26, "food_cost_total": 636226869, "food_cost_pct": 21.74, "iva_total": 447902151, "propinas_total": 274777212, "descuentos_total": 122522614, "ordenes_x_noche": 28.97, "clientes_x_noche": 79.46, "ingresos_x_noche": 1711698.97, "items_x_orden": 9.6, "neto_x_item": 5897.01, "duracion_prom_min": 145.78, "duracion_median_min": 131.38}, "waterfall_anio": [{"anio": 2021, "ingresos_brutos": 341906290, "descuentos": 11318251, "neto": 404755644, "iva": 62849354, "propinas": 39727733, "total_c_prop": 444483377, "costo_total": 53225114, "margen_bruto": 351530530, "margen_bruto_pct": 86.9, "food_cost_pct": 13.1, "desc_pct": 2.7, "prop_pct": 9.82, "iva_pct": 15.5, "boletas": 8174}, {"anio": 2022, "ingresos_brutos": 445968063, "descuentos": 13375000, "neto": 528160581, "iva": 82192518, "propinas": 51652364, "total_c_prop": 579812945, "costo_total": 133996337, "margen_bruto": 394164244, "margen_bruto_pct": 74.6, "food_cost_pct": 25.4, "desc_pct": 2.5, "prop_pct": 9.78, "iva_pct": 15.6, "boletas": 10522}, {"anio": 2023, "ingresos_brutos": 426798391, "descuentos": 12822794, "neto": 505570460, "iva": 78772069, "propinas": 48602657, "total_c_prop": 554173117, "costo_total": 117551954, "margen_bruto": 388018506, "margen_bruto_pct": 76.7, "food_cost_pct": 23.3, "desc_pct": 2.5, "prop_pct": 9.61, "iva_pct": 15.6, "boletas": 9490}, {"anio": 2024, "ingresos_brutos": 468660903, "descuentos": 27309742, "neto": 552509360, "iva": 83848457, "propinas": 49605021, "total_c_prop": 602114381, "costo_total": 120330971, "margen_bruto": 432178389, "margen_bruto_pct": 78.2, "food_cost_pct": 21.8, "desc_pct": 4.7, "prop_pct": 8.98, "iva_pct": 15.2, "boletas": 8868}, {"anio": 2025, "ingresos_brutos": 536347344, "descuentos": 39973782, "neto": 630658940, "iva": 94311596, "propinas": 56987441, "total_c_prop": 687646381, "costo_total": 143667247, "margen_bruto": 486991693, "margen_bruto_pct": 77.2, "food_cost_pct": 22.8, "desc_pct": 6.0, "prop_pct": 9.04, "iva_pct": 15.0, "boletas": 8547}, {"anio": 2026, "ingresos_brutos": 259422093, "descuentos": 17723045, "neto": 305350250, "iva": 45928157, "propinas": 28201996, "total_c_prop": 333552246, "costo_total": 67455246, "margen_bruto": 237895004, "margen_bruto_pct": 77.9, "food_cost_pct": 22.1, "desc_pct": 5.5, "prop_pct": 9.24, "iva_pct": 15.0, "boletas": 3931}], "composicion_ordenes": [{"tipo": "Mixta (Bebida + Comida)", "count": 43691, "ticket_prom": 64200.33, "pct": 88.37}, {"tipo": "Solo Bebida", "count": 4041, "ticket_prom": 21424.72, "pct": 8.17}, {"tipo": "Solo Comida", "count": 1346, "ticket_prom": 23026.91, "pct": 2.72}, {"tipo": "Otro", "count": 362, "ticket_prom": 10297.96, "pct": 0.73}], "dist_duracion": [{"rango": "<30 min", "count": 648, "ticket_prom": 20383.23}, {"rango": "30-60 min", "count": 3808, "ticket_prom": 27350.6}, {"rango": "1-1.5 h", "count": 7948, "ticket_prom": 35046.03}, {"rango": "1.5-2 h", "count": 7994, "ticket_prom": 41512.75}, {"rango": "2-3 h", "count": 12262, "ticket_prom": 50144.44}, {"rango": "3-4 h", "count": 7438, "ticket_prom": 70600.76}, {"rango": ">4 h", "count": 6148, "ticket_prom": 122492.46}], "prod_operacional": [{"anio": 2021, "boletas": 8174, "noches": 173, "ord_x_noche": 47.2, "cli_x_noche": 117.2, "ing_x_noche": 2339628.0}, {"anio": 2022, "boletas": 10522, "noches": 288, "ord_x_noche": 36.5, "cli_x_noche": 91.0, "ing_x_noche": 1833891.0}, {"anio": 2023, "boletas": 9490, "noches": 345, "ord_x_noche": 27.5, "cli_x_noche": 68.3, "ing_x_noche": 1465422.0}, {"anio": 2024, "boletas": 8868, "noches": 359, "ord_x_noche": 24.7, "cli_x_noche": 69.2, "ing_x_noche": 1539023.0}, {"anio": 2025, "boletas": 8547, "noches": 361, "ord_x_noche": 23.7, "cli_x_noche": 78.8, "ing_x_noche": 1746978.0}, {"anio": 2026, "boletas": 3931, "noches": 184, "ord_x_noche": 21.4, "cli_x_noche": 68.3, "ing_x_noche": 1659512.0}], "food_cost_cat": [{"cat": "Por Copa", "ingresos": 14991736, "costo": 2247511, "fc_pct": 15.0, "margen_pct": 85.0}, {"cat": "Cafetería", "ingresos": 7914868, "costo": 1202530, "fc_pct": 15.2, "margen_pct": 84.8}, {"cat": "Los Spritz", "ingresos": 113126283, "costo": 20197152, "fc_pct": 17.9, "margen_pct": 82.1}, {"cat": "Schop Artesanal Edelstoff", "ingresos": 237555429, "costo": 43323413, "fc_pct": 18.2, "margen_pct": 81.8}, {"cat": "Los Clásicos", "ingresos": 222187634, "costo": 40596468, "fc_pct": 18.3, "margen_pct": 81.7}, {"cat": "Coctelería de la Casa", "ingresos": 641678002, "costo": 127862522, "fc_pct": 19.9, "margen_pct": 80.1}, {"cat": "Cervezas", "ingresos": 29709764, "costo": 6091754, "fc_pct": 20.5, "margen_pct": 79.5}, {"cat": "Coctelería de la Casa Sin Alcohol", "ingresos": 55194107, "costo": 11935456, "fc_pct": 21.6, "margen_pct": 78.4}, {"cat": "Para Compartir", "ingresos": 605975668, "costo": 133402810, "fc_pct": 22.0, "margen_pct": 78.0}, {"cat": "Bebidas y Refrescos", "ingresos": 91947973, "costo": 21247761, "fc_pct": 23.1, "margen_pct": 76.9}, {"cat": "Platos Veganos", "ingresos": 56006774, "costo": 13121496, "fc_pct": 23.4, "margen_pct": 76.6}, {"cat": "Cervezas sin Alcohol", "ingresos": 14497242, "costo": 3725637, "fc_pct": 25.7, "margen_pct": 74.3}, {"cat": "Hamburguesas y Sandwichs", "ingresos": 199379347, "costo": 51428633, "fc_pct": 25.8, "margen_pct": 74.2}, {"cat": "Sour", "ingresos": 47983975, "costo": 12795637, "fc_pct": 26.7, "margen_pct": 73.3}, {"cat": "Pisco - Nacional", "ingresos": 95833078, "costo": 25574731, "fc_pct": 26.7, "margen_pct": 73.3}, {"cat": "Licores y Bitters", "ingresos": 8130529, "costo": 2228461, "fc_pct": 27.4, "margen_pct": 72.6}, {"cat": "Vino Tinto", "ingresos": 5446660, "costo": 1493731, "fc_pct": 27.4, "margen_pct": 72.6}, {"cat": "Ron", "ingresos": 5139522, "costo": 1436629, "fc_pct": 28.0, "margen_pct": 72.0}, {"cat": "Entradas", "ingresos": 97773068, "costo": 28522149, "fc_pct": 29.2, "margen_pct": 70.8}, {"cat": "Espumantes", "ingresos": 6857326, "costo": 2016418, "fc_pct": 29.4, "margen_pct": 70.6}, {"cat": "Menú Niños", "ingresos": 18466656, "costo": 5465275, "fc_pct": 29.6, "margen_pct": 70.4}, {"cat": "Fondos", "ingresos": 129318128, "costo": 39631131, "fc_pct": 30.6, "margen_pct": 69.4}, {"cat": "Vodka", "ingresos": 5350738, "costo": 1790685, "fc_pct": 33.5, "margen_pct": 66.5}, {"cat": "Whisky - Scotch", "ingresos": 11309864, "costo": 3949328, "fc_pct": 34.9, "margen_pct": 65.1}, {"cat": "Whiskey", "ingresos": 9258578, "costo": 3255011, "fc_pct": 35.2, "margen_pct": 64.8}, {"cat": "Postres", "ingresos": 11053079, "costo": 4512520, "fc_pct": 40.8, "margen_pct": 59.2}, {"cat": "Gin", "ingresos": 34434035, "costo": 14221286, "fc_pct": 41.3, "margen_pct": 58.7}, {"cat": "Tequila Shots", "ingresos": 16633653, "costo": 9555139, "fc_pct": 57.4, "margen_pct": 42.6}], "prop_por_dia": [{"dia": "Lunes", "propinas": 12406819, "pct": 9.69}, {"dia": "Martes", "propinas": 22710837, "pct": 9.6}, {"dia": "Miércoles", "propinas": 30698899, "pct": 9.58}, {"dia": "Jueves", "propinas": 40861334, "pct": 9.49}, {"dia": "Viernes", "propinas": 65364029, "pct": 9.41}, {"dia": "Sábado", "propinas": 73845931, "pct": 9.33}, {"dia": "Domingo", "propinas": 28889363, "pct": 8.88}], "top_mesas": [{"mesa": "T26", "ordenes": 885, "ingresos": 154171655, "clientes": 6711, "ticket_prom": 174205.26, "propinas": 15043983}, {"mesa": "T29", "ordenes": 944, "ingresos": 133349368, "clientes": 5751, "ticket_prom": 141259.92, "propinas": 12939785}, {"mesa": "T28", "ordenes": 825, "ingresos": 105992828, "clientes": 4731, "ticket_prom": 128476.16, "propinas": 10229429}, {"mesa": "P01", "ordenes": 408, "ingresos": 105564241, "clientes": 4263, "ticket_prom": 258735.88, "propinas": 10208634}, {"mesa": "T33", "ordenes": 881, "ingresos": 88341087, "clientes": 3735, "ticket_prom": 100273.65, "propinas": 8530879}, {"mesa": "T02", "ordenes": 2078, "ingresos": 85715538, "clientes": 4401, "ticket_prom": 41249.06, "propinas": 8447441}, {"mesa": "T23", "ordenes": 991, "ingresos": 82501139, "clientes": 3594, "ticket_prom": 83250.39, "propinas": 7942911}, {"mesa": "S01", "ordenes": 1086, "ingresos": 76383190, "clientes": 3561, "ticket_prom": 70334.43, "propinas": 7497321}, {"mesa": "T30", "ordenes": 1235, "ingresos": 75961041, "clientes": 3395, "ticket_prom": 61506.92, "propinas": 7475085}, {"mesa": "T22", "ordenes": 1040, "ingresos": 72740466, "clientes": 3243, "ticket_prom": 69942.76, "propinas": 7084499}, {"mesa": "T31", "ordenes": 1158, "ingresos": 67996272, "clientes": 2974, "ticket_prom": 58718.72, "propinas": 6654054}, {"mesa": "T21", "ordenes": 1060, "ingresos": 67927406, "clientes": 3076, "ticket_prom": 64082.46, "propinas": 6708131}, {"mesa": "T24", "ordenes": 895, "ingresos": 66855540, "clientes": 2999, "ticket_prom": 74698.93, "propinas": 6561814}, {"mesa": "T27", "ordenes": 868, "ingresos": 63586308, "clientes": 2788, "ticket_prom": 73256.12, "propinas": 6255533}, {"mesa": "T01", "ordenes": 1370, "ingresos": 62877412, "clientes": 3035, "ticket_prom": 45895.92, "propinas": 5681925}, {"mesa": "T04", "ordenes": 1429, "ingresos": 62651282, "clientes": 3209, "ticket_prom": 43842.74, "propinas": 6169591}, {"mesa": "S02", "ordenes": 997, "ingresos": 62286390, "clientes": 2862, "ticket_prom": 62473.81, "propinas": 6104388}, {"mesa": "T20", "ordenes": 1089, "ingresos": 61700415, "clientes": 2846, "ticket_prom": 56657.87, "propinas": 5975900}, {"mesa": "T25", "ordenes": 592, "ingresos": 61613838, "clientes": 2645, "ticket_prom": 104077.43, "propinas": 5998324}, {"mesa": "T03", "ordenes": 1440, "ingresos": 61444436, "clientes": 3130, "ticket_prom": 42669.75, "propinas": 6106731}]
+};
+
+// ============================================================
+// DATOS CONTEXTO & MERCADO (correlaciones macro)
+// ============================================================
+const DCTX = {"labels": ["2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"], "ventas_yoy": [31.2, 1.3, -27.1, -20.9, -31.0, -25.1, -15.1, -25.1, -28.3, -23.2, -23.8, -28.5, -29.4, -22.2, -7.8, -16.1, 0.4, -5.6, -15.6, 36.5, 2.2, 19.8, -2.3, 24.1, 45.2, -4.7, 30.0, 6.2, 23.0, 21.4, 55.4, 7.4, 18.2, 13.4, 9.5, -1.2, -0.6, 6.2, 7.7, 12.6, -23.6, -3.0, -2.9, -19.7], "ventas_real_yoy": [18.0, -12.8, -40.9, -33.8, -44.5, -38.0, -27.5, -33.8, -35.8, -29.7, -29.1, -33.6, -34.4, -26.9, -11.7, -19.9, -3.4, -9.6, -19.8, 32.2, -2.4, 15.0, -6.5, 19.3, 40.9, -9.3, 25.0, 1.4, 18.1, 16.8, 50.9, 3.2, 13.8, 9.3, 5.1, -4.5, -4.0, 2.8, 4.9, 10.2, -26.4, -7.0, -6.8, null], "imacec": [1.0, 0.0, -0.4, -1.2, -2.5, -1.0, 0.4, -2.0, -1.0, 1.8, -0.9, 0.0, 0.3, 1.2, -1.0, 2.5, 0.8, 3.5, 1.1, 0.1, 4.2, 2.3, 0.0, 2.3, 2.1, 6.6, 2.5, -0.1, 3.8, 2.5, 3.2, 3.1, 1.8, 0.5, 3.2, 2.2, 1.2, 1.7, -0.1, -0.3, -0.1, -1.2, -0.9, null], "ipc": [13.2, 14.1, 13.8, 12.9, 13.5, 12.9, 12.4, 8.7, 7.5, 6.5, 5.3, 5.1, 5.0, 4.7, 3.9, 3.8, 3.8, 4.0, 4.2, 4.3, 4.6, 4.8, 4.2, 4.8, 4.3, 4.6, 5.0, 4.8, 4.9, 4.6, 4.5, 4.2, 4.4, 4.1, 4.4, 3.3, 3.4, 3.4, 2.8, 2.4, 2.8, 4.0, 3.9, null], "desempleo": [7.9, 7.9, 8.0, 8.0, 8.0, 7.9, 8.0, 8.5, 8.5, 8.8, 9.0, 8.9, 8.9, 8.7, 8.5, 8.4, 8.7, 8.5, 8.3, 8.4, 8.7, 8.9, 8.7, 8.6, 8.2, 8.1, 8.0, 8.4, 8.7, 8.8, 8.9, 8.9, 8.7, 8.6, 8.5, 8.5, 8.4, 8.1, 8.3, 8.3, 8.9, 9.1, 9.4, null], "usd": [953.7, 904.4, 921.0, 955.9, 917.1, 875.7, 826.3, 798.6, 799.9, 813.4, 855.7, 884.4, 926.3, 886.6, 874.7, 908.0, 967.9, 960.1, 917.9, 926.1, 937.6, 929.9, 926.2, 933.8, 971.6, 982.3, 1000.8, 956.6, 932.6, 962.0, 941.0, 938.0, 951.6, 966.3, 960.4, 954.0, 935.7, 916.2, 884.0, 862.0, 909.9, 897.9, 897.6, 903.4], "correlaciones": {"imacec": {"total": {"r": 0.467, "n": 43}, "post": {"r": 0.472, "n": 40}}, "ipc": {"total": {"r": -0.311, "n": 43}, "post": {"r": -0.431, "n": 40}}, "desempleo": {"total": {"r": 0.003, "n": 43}, "post": {"r": 0.026, "n": 40}}, "usd": {"total": {"r": 0.548, "n": 44}, "post": {"r": 0.552, "n": 41}}, "usd_yoy": {"total": {"r": 0.198, "n": 44}, "post": {"r": 0.183, "n": 41}}}, "eventos": [{"mes": "2021-07", "evento": "IFE Universal + 3er retiro AFP: alta liquidez de hogares", "impacto": "alza", "tipo": "economia", "ingresos_mes": 38889400, "var_yoy": null, "var_mm": null}, {"mes": "2021-11", "evento": "Reapertura de fronteras y relajación Paso a Paso", "impacto": "alza", "tipo": "regulacion", "ingresos_mes": 77955924, "var_yoy": null, "var_mm": -4.6}, {"mes": "2021-12", "evento": "Elecciones presidenciales (2ª vuelta, ley seca puntual)", "impacto": "neutro", "tipo": "politica", "ingresos_mes": 82079460, "var_yoy": null, "var_mm": 5.3}, {"mes": "2022-09", "evento": "Plebiscito constitucional 1 (ley seca) · peak inflación 14,1%", "impacto": "baja", "tipo": "politica", "ingresos_mes": 53499300, "var_yoy": -27.1, "var_mm": 4.0}, {"mes": "2022-10", "evento": "Fin del pase de movilidad, mascarillas y aforos", "impacto": "alza", "tipo": "regulacion", "ingresos_mes": 64642480, "var_yoy": -20.9, "var_mm": 20.8}, {"mes": "2022-11", "evento": "Mundial Qatar (Chile ausente, horarios AM) · IMACEC -2,5%", "impacto": "neutro", "tipo": "evento", "ingresos_mes": 53808490, "var_yoy": -31.0, "var_mm": -16.8}, {"mes": "2023-06", "evento": "Sistemas frontales intensos en Santiago (lluvias)", "impacto": "baja", "tipo": "clima", "ingresos_mes": 30477350, "var_yoy": -28.3, "var_mm": -22.9}, {"mes": "2023-08", "evento": "Fin alerta sanitaria COVID · nuevo frente de lluvias", "impacto": "neutro", "tipo": "regulacion", "ingresos_mes": 39212230, "var_yoy": -23.8, "var_mm": 0.1}, {"mes": "2023-10", "evento": "Juegos Panamericanos Santiago 2023", "impacto": "alza", "tipo": "evento", "ingresos_mes": 45618180, "var_yoy": -29.4, "var_mm": 19.2}, {"mes": "2023-12", "evento": "Plebiscito constitucional 2 (ley seca puntual)", "impacto": "baja", "tipo": "politica", "ingresos_mes": 56683270, "var_yoy": -7.8, "var_mm": 35.4}, {"mes": "2024-02", "evento": "Megaincendios Viña del Mar, duelo nacional", "impacto": "baja", "tipo": "clima", "ingresos_mes": 43705470, "var_yoy": null, "var_mm": -9.9}, {"mes": "2024-06", "evento": "Copa América EE.UU.: partidos de Chile en fase de grupos", "impacto": "alza", "tipo": "evento", "ingresos_mes": 41590800, "var_yoy": 36.5, "var_mm": 24.7}, {"mes": "2025-02", "evento": "Apagón nacional masivo (25-feb, toque de queda esa noche)", "impacto": "baja", "tipo": "evento", "ingresos_mes": 46395060, "var_yoy": 6.2, "var_mm": -26.4}, {"mes": "2025-09", "evento": "Fiestas Patrias (peak estacional anual)", "impacto": "alza", "tipo": "estacional", "ingresos_mes": 40943900, "var_yoy": 9.5, "var_mm": -23.1}, {"mes": "2025-11", "evento": "Elecciones presidenciales 1ª vuelta (ley seca)", "impacto": "baja", "tipo": "politica", "ingresos_mes": 60364740, "var_yoy": -0.6, "var_mm": 7.9}, {"mes": "2026-01", "evento": "Inicio contracción económica: 5 IMACEC negativos seguidos", "impacto": "baja", "tipo": "economia", "ingresos_mes": 67902870, "var_yoy": 7.7, "var_mm": 18.4}, {"mes": "2026-03", "evento": "Cambio de mando presidencial (11-mar)", "impacto": "neutro", "tipo": "politica", "ingresos_mes": 46579760, "var_yoy": -23.6, "var_mm": -10.9}, {"mes": "2026-05", "evento": "Desempleo 9,4%, el más alto en 5 años", "impacto": "baja", "tipo": "economia", "ingresos_mes": 50318550, "var_yoy": -2.9, "var_mm": 6.6}, {"mes": "2026-06", "evento": "Mundial 2026 EE.UU./MEX/CAN (11-jun a 19-jul, horario PM)", "impacto": "alza", "tipo": "evento", "ingresos_mes": 35874980, "var_yoy": -19.7, "var_mm": -28.7}], "serie_ventas_full": [{"mes": "2021-07", "ingresos": 38889400}, {"mes": "2021-08", "ingresos": 50789010}, {"mes": "2021-09", "ingresos": 73351613}, {"mes": "2021-10", "ingresos": 81690237}, {"mes": "2021-11", "ingresos": 77955924}, {"mes": "2021-12", "ingresos": 82079460}, {"mes": "2022-01", "ingresos": 68033841}, {"mes": "2022-05", "ingresos": 52771080}, {"mes": "2022-06", "ingresos": 42517810}, {"mes": "2022-07", "ingresos": 51015150}, {"mes": "2022-08", "ingresos": 51447740}, {"mes": "2022-09", "ingresos": 53499300}, {"mes": "2022-10", "ingresos": 64642480}, {"mes": "2022-11", "ingresos": 53808490}, {"mes": "2022-12", "ingresos": 61471440}, {"mes": "2023-01", "ingresos": 57780420}, {"mes": "2023-03", "ingresos": 49316720}, {"mes": "2023-04", "ingresos": 42462080}, {"mes": "2023-05", "ingresos": 39520130}, {"mes": "2023-06", "ingresos": 30477350}, {"mes": "2023-07", "ingresos": 39190260}, {"mes": "2023-08", "ingresos": 39212230}, {"mes": "2023-09", "ingresos": 38268730}, {"mes": "2023-10", "ingresos": 45618180}, {"mes": "2023-11", "ingresos": 41848230}, {"mes": "2023-12", "ingresos": 56683270}, {"mes": "2024-01", "ingresos": 48498080}, {"mes": "2024-02", "ingresos": 43705470}, {"mes": "2024-03", "ingresos": 49517370}, {"mes": "2024-04", "ingresos": 40072280}, {"mes": "2024-05", "ingresos": 33354850}, {"mes": "2024-06", "ingresos": 41590800}, {"mes": "2024-07", "ingresos": 40050120}, {"mes": "2024-08", "ingresos": 46966320}, {"mes": "2024-09", "ingresos": 37401760}, {"mes": "2024-10", "ingresos": 56591040}, {"mes": "2024-11", "ingresos": 60748100}, {"mes": "2024-12", "ingresos": 54013170}, {"mes": "2025-01", "ingresos": 63029220}, {"mes": "2025-02", "ingresos": 46395060}, {"mes": "2025-03", "ingresos": 60929370}, {"mes": "2025-04", "ingresos": 48666940}, {"mes": "2025-05", "ingresos": 51830710}, {"mes": "2025-06", "ingresos": 44648710}, {"mes": "2025-07", "ingresos": 47326850}, {"mes": "2025-08", "ingresos": 53261920}, {"mes": "2025-09", "ingresos": 40943900}, {"mes": "2025-10", "ingresos": 55923400}, {"mes": "2025-11", "ingresos": 60364740}, {"mes": "2025-12", "ingresos": 57338120}, {"mes": "2026-01", "ingresos": 67902870}, {"mes": "2026-02", "ingresos": 52252370}, {"mes": "2026-03", "ingresos": 46579760}, {"mes": "2026-04", "ingresos": 47207200}, {"mes": "2026-05", "ingresos": 50318550}, {"mes": "2026-06", "ingresos": 35874980}], "fuentes": {"imacec": "Banco Central de Chile (via mindicador.cl, primera publicacion)", "ipc": "INE Chile (2021-2025 encadenado +-0.3pp; 2026 oficial SII/INE)", "usd": "Dolar observado BCCh, promedio mensual (via mindicador.cl)", "desempleo": "Tasa nacional trimestre movil ENE-INE (via mindicador.cl)"}
+};
+
+// ============================================================
+const DATA = {"generado": "2026-07-06T10:50:10.980859", "kpis": {"ingresos_totales": 2927005235, "pagos_totales": 49532, "clientes_totales": 135876, "ticket_promedio": 59093.22, "ticket_por_persona": 21541.74, "propinas_totales": 274777212, "pct_propina": 9.39, "productos_distintos": 478, "primera_venta": "2021-07-05", "ultima_venta": "2026-07-05", "dias_operacion": 1825, "noches_operacion": 1710}, "por_anio": [{"anio": 2021, "ingresos": 404755644, "pagos": 8174, "ticket_prom": 49517.45}, {"anio": 2022, "ingresos": 528160581, "pagos": 10522, "ticket_prom": 50195.84}, {"anio": 2023, "ingresos": 505570460, "pagos": 9490, "ticket_prom": 53274.02}, {"anio": 2024, "ingresos": 552509360, "pagos": 8868, "ticket_prom": 62303.72}, {"anio": 2025, "ingresos": 630658940, "pagos": 8547, "ticket_prom": 73787.17}, {"anio": 2026, "ingresos": 305350250, "pagos": 3931, "ticket_prom": 77677.5}], "serie_mensual": [{"mes": "2021-07", "ingresos": 38889400, "pagos": 850, "clientes": 2177, "ticket": 45752.24}, {"mes": "2021-08", "ingresos": 50789010, "pagos": 1031, "clientes": 2562, "ticket": 49261.89}, {"mes": "2021-09", "ingresos": 73351613, "pagos": 1446, "clientes": 3532, "ticket": 50727.26}, {"mes": "2021-10", "ingresos": 81690237, "pagos": 1629, "clientes": 3892, "ticket": 50147.48}, {"mes": "2021-11", "ingresos": 77955924, "pagos": 1591, "clientes": 3957, "ticket": 48998.07}, {"mes": "2021-12", "ingresos": 82079460, "pagos": 1627, "clientes": 4158, "ticket": 50448.35}, {"mes": "2022-01", "ingresos": 68033841, "pagos": 1483, "clientes": 3652, "ticket": 45875.82}, {"mes": "2022-02", "ingresos": 188250, "pagos": 6, "clientes": 12, "ticket": 31375.0}, {"mes": "2022-04", "ingresos": 28765000, "pagos": 602, "clientes": 1400, "ticket": 47782.39}, {"mes": "2022-05", "ingresos": 52771080, "pagos": 1064, "clientes": 2600, "ticket": 49596.88}, {"mes": "2022-06", "ingresos": 42517810, "pagos": 873, "clientes": 2091, "ticket": 48703.1}, {"mes": "2022-07", "ingresos": 51015150, "pagos": 977, "clientes": 2471, "ticket": 52216.12}, {"mes": "2022-08", "ingresos": 51447740, "pagos": 1031, "clientes": 2574, "ticket": 49900.81}, {"mes": "2022-09", "ingresos": 53499300, "pagos": 1032, "clientes": 2658, "ticket": 51840.41}, {"mes": "2022-10", "ingresos": 64642480, "pagos": 1244, "clientes": 3153, "ticket": 51963.41}, {"mes": "2022-11", "ingresos": 53808490, "pagos": 1096, "clientes": 2647, "ticket": 49095.34}, {"mes": "2022-12", "ingresos": 61471440, "pagos": 1114, "clientes": 2951, "ticket": 55180.83}, {"mes": "2023-01", "ingresos": 57780420, "pagos": 1110, "clientes": 2809, "ticket": 52054.43}, {"mes": "2023-02", "ingresos": 25192860, "pagos": 508, "clientes": 1237, "ticket": 49592.24}, {"mes": "2023-03", "ingresos": 49316720, "pagos": 946, "clientes": 2503, "ticket": 52131.84}, {"mes": "2023-04", "ingresos": 42462080, "pagos": 862, "clientes": 2076, "ticket": 49259.95}, {"mes": "2023-05", "ingresos": 39520130, "pagos": 735, "clientes": 1776, "ticket": 53768.88}, {"mes": "2023-06", "ingresos": 30477350, "pagos": 630, "clientes": 1409, "ticket": 48376.75}, {"mes": "2023-07", "ingresos": 39190260, "pagos": 763, "clientes": 1833, "ticket": 51363.38}, {"mes": "2023-08", "ingresos": 39212230, "pagos": 697, "clientes": 1739, "ticket": 56258.58}, {"mes": "2023-09", "ingresos": 38268730, "pagos": 695, "clientes": 1739, "ticket": 55062.92}, {"mes": "2023-10", "ingresos": 45618180, "pagos": 846, "clientes": 2082, "ticket": 53922.2}, {"mes": "2023-11", "ingresos": 41848230, "pagos": 787, "clientes": 1944, "ticket": 53174.37}, {"mes": "2023-12", "ingresos": 56683270, "pagos": 911, "clientes": 2412, "ticket": 62220.93}, {"mes": "2024-01", "ingresos": 48498080, "pagos": 847, "clientes": 2104, "ticket": 57258.65}, {"mes": "2024-02", "ingresos": 43705470, "pagos": 841, "clientes": 1955, "ticket": 51968.45}, {"mes": "2024-03", "ingresos": 49517370, "pagos": 838, "clientes": 2123, "ticket": 59089.94}, {"mes": "2024-04", "ingresos": 40072280, "pagos": 705, "clientes": 1806, "ticket": 56840.11}, {"mes": "2024-05", "ingresos": 33354850, "pagos": 532, "clientes": 1569, "ticket": 62697.09}, {"mes": "2024-06", "ingresos": 41590800, "pagos": 613, "clientes": 1857, "ticket": 67847.96}, {"mes": "2024-07", "ingresos": 40050120, "pagos": 639, "clientes": 1777, "ticket": 62676.24}, {"mes": "2024-08", "ingresos": 46966320, "pagos": 659, "clientes": 2153, "ticket": 71269.07}, {"mes": "2024-09", "ingresos": 37401760, "pagos": 620, "clientes": 1732, "ticket": 60325.42}, {"mes": "2024-10", "ingresos": 56591040, "pagos": 882, "clientes": 2584, "ticket": 64162.18}, {"mes": "2024-11", "ingresos": 60748100, "pagos": 919, "clientes": 2773, "ticket": 66102.39}, {"mes": "2024-12", "ingresos": 54013170, "pagos": 773, "clientes": 2393, "ticket": 69874.73}, {"mes": "2025-01", "ingresos": 63029220, "pagos": 888, "clientes": 2830, "ticket": 70978.85}, {"mes": "2025-02", "ingresos": 46395060, "pagos": 727, "clientes": 2134, "ticket": 63817.14}, {"mes": "2025-03", "ingresos": 60929370, "pagos": 866, "clientes": 2887, "ticket": 70357.24}, {"mes": "2025-04", "ingresos": 48666940, "pagos": 715, "clientes": 2227, "ticket": 68065.65}, {"mes": "2025-05", "ingresos": 51830710, "pagos": 718, "clientes": 2394, "ticket": 72187.62}, {"mes": "2025-06", "ingresos": 44648710, "pagos": 571, "clientes": 2082, "ticket": 78193.89}, {"mes": "2025-07", "ingresos": 47326850, "pagos": 667, "clientes": 2184, "ticket": 70954.8}, {"mes": "2025-08", "ingresos": 53261920, "pagos": 634, "clientes": 2394, "ticket": 84009.34}, {"mes": "2025-09", "ingresos": 40943900, "pagos": 538, "clientes": 1931, "ticket": 76103.9}, {"mes": "2025-10", "ingresos": 55923400, "pagos": 751, "clientes": 2466, "ticket": 74465.25}, {"mes": "2025-11", "ingresos": 60364740, "pagos": 796, "clientes": 2593, "ticket": 75835.1}, {"mes": "2025-12", "ingresos": 57338120, "pagos": 676, "clientes": 2308, "ticket": 84819.7}, {"mes": "2026-01", "ingresos": 67902870, "pagos": 832, "clientes": 2794, "ticket": 81614.03}, {"mes": "2026-02", "ingresos": 52252370, "pagos": 722, "clientes": 2128, "ticket": 72371.7}, {"mes": "2026-03", "ingresos": 46579760, "pagos": 649, "clientes": 1947, "ticket": 71771.59}, {"mes": "2026-04", "ingresos": 47207200, "pagos": 595, "clientes": 1892, "ticket": 79339.83}, {"mes": "2026-05", "ingresos": 50318550, "pagos": 609, "clientes": 2123, "ticket": 82624.88}, {"mes": "2026-06", "ingresos": 35874980, "pagos": 448, "clientes": 1475, "ticket": 80078.08}, {"mes": "2026-07", "ingresos": 5214520, "pagos": 76, "clientes": 215, "ticket": 68612.11}], "serie_ticket": [{"mes": "2021-07", "ticket": 45752.24}, {"mes": "2021-08", "ticket": 49261.89}, {"mes": "2021-09", "ticket": 50727.26}, {"mes": "2021-10", "ticket": 50147.48}, {"mes": "2021-11", "ticket": 48998.07}, {"mes": "2021-12", "ticket": 50448.35}, {"mes": "2022-01", "ticket": 45875.82}, {"mes": "2022-02", "ticket": 31375.0}, {"mes": "2022-04", "ticket": 47782.39}, {"mes": "2022-05", "ticket": 49596.88}, {"mes": "2022-06", "ticket": 48703.1}, {"mes": "2022-07", "ticket": 52216.12}, {"mes": "2022-08", "ticket": 49900.81}, {"mes": "2022-09", "ticket": 51840.41}, {"mes": "2022-10", "ticket": 51963.41}, {"mes": "2022-11", "ticket": 49095.34}, {"mes": "2022-12", "ticket": 55180.83}, {"mes": "2023-01", "ticket": 52054.43}, {"mes": "2023-02", "ticket": 49592.24}, {"mes": "2023-03", "ticket": 52131.84}, {"mes": "2023-04", "ticket": 49259.95}, {"mes": "2023-05", "ticket": 53768.88}, {"mes": "2023-06", "ticket": 48376.75}, {"mes": "2023-07", "ticket": 51363.38}, {"mes": "2023-08", "ticket": 56258.58}, {"mes": "2023-09", "ticket": 55062.92}, {"mes": "2023-10", "ticket": 53922.2}, {"mes": "2023-11", "ticket": 53174.37}, {"mes": "2023-12", "ticket": 62220.93}, {"mes": "2024-01", "ticket": 57258.65}, {"mes": "2024-02", "ticket": 51968.45}, {"mes": "2024-03", "ticket": 59089.94}, {"mes": "2024-04", "ticket": 56840.11}, {"mes": "2024-05", "ticket": 62697.09}, {"mes": "2024-06", "ticket": 67847.96}, {"mes": "2024-07", "ticket": 62676.24}, {"mes": "2024-08", "ticket": 71269.07}, {"mes": "2024-09", "ticket": 60325.42}, {"mes": "2024-10", "ticket": 64162.18}, {"mes": "2024-11", "ticket": 66102.39}, {"mes": "2024-12", "ticket": 69874.73}, {"mes": "2025-01", "ticket": 70978.85}, {"mes": "2025-02", "ticket": 63817.14}, {"mes": "2025-03", "ticket": 70357.24}, {"mes": "2025-04", "ticket": 68065.65}, {"mes": "2025-05", "ticket": 72187.62}, {"mes": "2025-06", "ticket": 78193.89}, {"mes": "2025-07", "ticket": 70954.8}, {"mes": "2025-08", "ticket": 84009.34}, {"mes": "2025-09", "ticket": 76103.9}, {"mes": "2025-10", "ticket": 74465.25}, {"mes": "2025-11", "ticket": 75835.1}, {"mes": "2025-12", "ticket": 84819.7}, {"mes": "2026-01", "ticket": 81614.03}, {"mes": "2026-02", "ticket": 72371.7}, {"mes": "2026-03", "ticket": 71771.59}, {"mes": "2026-04", "ticket": 79339.83}, {"mes": "2026-05", "ticket": 82624.88}, {"mes": "2026-06", "ticket": 80078.08}, {"mes": "2026-07", "ticket": 68612.11}], "estacionalidad_mes": [{"mes": "Ene", "mes_num": 1, "ingreso_prom": 59335390}, {"mes": "Feb", "mes_num": 2, "ingreso_prom": 28870410}, {"mes": "Mar", "mes_num": 3, "ingreso_prom": 39940865}, {"mes": "Abr", "mes_num": 4, "ingreso_prom": 39991575}, {"mes": "May", "mes_num": 5, "ingreso_prom": 44369192}, {"mes": "Jun", "mes_num": 6, "ingreso_prom": 39808667}, {"mes": "Jul", "mes_num": 7, "ingreso_prom": 44395595}, {"mes": "Ago", "mes_num": 8, "ingreso_prom": 47722052}, {"mes": "Sep", "mes_num": 9, "ingreso_prom": 42528422}, {"mes": "Oct", "mes_num": 10, "ingreso_prom": 55693775}, {"mes": "Nov", "mes_num": 11, "ingreso_prom": 54192390}, {"mes": "Dic", "mes_num": 12, "ingreso_prom": 57376500}], "por_dia": [{"dia": "Lunes", "ingresos": 128052635, "pagos": 2415, "clientes": 6433, "ticket_prom": 53023.87}, {"dia": "Martes", "ingresos": 236453350, "pagos": 4605, "clientes": 11379, "ticket_prom": 51347.09}, {"dia": "Miércoles", "ingresos": 320380426, "pagos": 6113, "clientes": 15316, "ticket_prom": 52409.69}, {"dia": "Jueves", "ingresos": 430477253, "pagos": 7559, "clientes": 19800, "ticket_prom": 56948.97}, {"dia": "Viernes", "ingresos": 694728063, "pagos": 10512, "clientes": 30725, "ticket_prom": 66089.05}, {"dia": "Sábado", "ingresos": 791498592, "pagos": 12407, "clientes": 36610, "ticket_prom": 63794.52}, {"dia": "Domingo", "ingresos": 325414916, "pagos": 5921, "clientes": 15613, "ticket_prom": 54959.45}], "cl_por_dia": [{"dia": "Lunes", "promedio": 2.66}, {"dia": "Martes", "promedio": 2.47}, {"dia": "Miércoles", "promedio": 2.51}, {"dia": "Jueves", "promedio": 2.62}, {"dia": "Viernes", "promedio": 2.92}, {"dia": "Sábado", "promedio": 2.95}, {"dia": "Domingo", "promedio": 2.64}], "por_hora": [{"hora": 0, "ingresos": 566143951, "pagos": 9375}, {"hora": 1, "ingresos": 311581192, "pagos": 6678}, {"hora": 2, "ingresos": 123563091, "pagos": 3373}, {"hora": 3, "ingresos": 36516960, "pagos": 1189}, {"hora": 4, "ingresos": 15670520, "pagos": 522}, {"hora": 5, "ingresos": 8683760, "pagos": 287}, {"hora": 6, "ingresos": 1481820, "pagos": 56}, {"hora": 7, "ingresos": 424320, "pagos": 14}, {"hora": 8, "ingresos": 83880, "pagos": 3}, {"hora": 13, "ingresos": 1000, "pagos": 1}, {"hora": 14, "ingresos": 567250, "pagos": 20}, {"hora": 15, "ingresos": 2166580, "pagos": 6}, {"hora": 16, "ingresos": 14635406, "pagos": 204}, {"hora": 17, "ingresos": 41864191, "pagos": 736}, {"hora": 18, "ingresos": 51145995, "pagos": 948}, {"hora": 19, "ingresos": 53199097, "pagos": 1019}, {"hora": 20, "ingresos": 116694143, "pagos": 1958}, {"hora": 21, "ingresos": 294102550, "pagos": 4430}, {"hora": 22, "ingresos": 569432096, "pagos": 8254}, {"hora": 23, "ingresos": 719047433, "pagos": 10459}], "por_categoria": [{"nombre": "Coctelería de la Casa", "ingresos": 641678002, "costo": 127862522, "margen": 513815480, "margen_pct": 80.07, "cantidad": 89646, "pct": 22.87}, {"nombre": "Para Compartir", "ingresos": 605975668, "costo": 133402810, "margen": 472572858, "margen_pct": 77.99, "cantidad": 54997, "pct": 21.6}, {"nombre": "Schop Artesanal Edelstoff", "ingresos": 237555429, "costo": 43323413, "margen": 194232016, "margen_pct": 81.76, "cantidad": 55917, "pct": 8.47}, {"nombre": "Los Clásicos", "ingresos": 222187634, "costo": 40596468, "margen": 181591166, "margen_pct": 81.73, "cantidad": 36126, "pct": 7.92}, {"nombre": "Hamburguesas y Sandwichs", "ingresos": 199379347, "costo": 51428633, "margen": 147950714, "margen_pct": 74.21, "cantidad": 22739, "pct": 7.11}, {"nombre": "Fondos", "ingresos": 129318128, "costo": 39631131, "margen": 89686997, "margen_pct": 69.35, "cantidad": 10742, "pct": 4.61}, {"nombre": "Los Spritz", "ingresos": 113126283, "costo": 20197152, "margen": 92929131, "margen_pct": 82.15, "cantidad": 21744, "pct": 4.03}, {"nombre": "Entradas", "ingresos": 97773068, "costo": 28522149, "margen": 69250919, "margen_pct": 70.83, "cantidad": 9067, "pct": 3.49}, {"nombre": "Pisco - Nacional", "ingresos": 95833078, "costo": 25574731, "margen": 70258347, "margen_pct": 73.31, "cantidad": 37508, "pct": 3.42}, {"nombre": "Bebidas y Refrescos", "ingresos": 91947973, "costo": 21247761, "margen": 70700212, "margen_pct": 76.89, "cantidad": 50772, "pct": 3.28}, {"nombre": "Platos Veganos", "ingresos": 56006774, "costo": 13121496, "margen": 42885278, "margen_pct": 76.57, "cantidad": 5121, "pct": 2.0}, {"nombre": "Coctelería de la Casa Sin Alcohol", "ingresos": 55194107, "costo": 11935456, "margen": 43258651, "margen_pct": 78.38, "cantidad": 8441, "pct": 1.97}, {"nombre": "Otros", "ingresos": 259305060, "costo": 79383147, "margen": 179921913, "margen_pct": 69.39, "cantidad": 72892, "pct": 9.24}], "costo_vs_ing": [{"categoria": "Coctelería de la Casa", "ingresos": 641678002, "costo": 127862522, "margen": 513815480, "margen_pct": 80.07}, {"categoria": "Para Compartir", "ingresos": 605975668, "costo": 133402810, "margen": 472572858, "margen_pct": 77.99}, {"categoria": "Schop Artesanal Edelstoff", "ingresos": 237555429, "costo": 43323413, "margen": 194232016, "margen_pct": 81.76}, {"categoria": "Los Clásicos", "ingresos": 222187634, "costo": 40596468, "margen": 181591166, "margen_pct": 81.73}, {"categoria": "Hamburguesas y Sandwichs", "ingresos": 199379347, "costo": 51428633, "margen": 147950714, "margen_pct": 74.21}, {"categoria": "Fondos", "ingresos": 129318128, "costo": 39631131, "margen": 89686997, "margen_pct": 69.35}, {"categoria": "Los Spritz", "ingresos": 113126283, "costo": 20197152, "margen": 92929131, "margen_pct": 82.15}, {"categoria": "Entradas", "ingresos": 97773068, "costo": 28522149, "margen": 69250919, "margen_pct": 70.83}], "ev_cat_anio": [{"categoria": "Coctelería de la Casa", "datos": [{"anio": 2021, "ingresos": 96862877}, {"anio": 2022, "ingresos": 146867536}, {"anio": 2023, "ingresos": 115983320}, {"anio": 2024, "ingresos": 108227495}, {"anio": 2025, "ingresos": 121338599}, {"anio": 2026, "ingresos": 52398175}]}, {"categoria": "Para Compartir", "datos": [{"anio": 2021, "ingresos": 98275792}, {"anio": 2022, "ingresos": 122935411}, {"anio": 2023, "ingresos": 108195489}, {"anio": 2024, "ingresos": 103657354}, {"anio": 2025, "ingresos": 113408715}, {"anio": 2026, "ingresos": 59502907}]}, {"categoria": "Schop Artesanal Edelstoff", "datos": [{"anio": 2021, "ingresos": 21368827}, {"anio": 2022, "ingresos": 36523346}, {"anio": 2023, "ingresos": 41361593}, {"anio": 2024, "ingresos": 51665184}, {"anio": 2025, "ingresos": 57860766}, {"anio": 2026, "ingresos": 28775713}]}, {"categoria": "Los Clásicos", "datos": [{"anio": 2021, "ingresos": 26185344}, {"anio": 2022, "ingresos": 30553434}, {"anio": 2023, "ingresos": 33703286}, {"anio": 2024, "ingresos": 46376420}, {"anio": 2025, "ingresos": 57362836}, {"anio": 2026, "ingresos": 28006314}]}, {"categoria": "Hamburguesas y Sandwichs", "datos": [{"anio": 2021, "ingresos": 29597593}, {"anio": 2022, "ingresos": 39642782}, {"anio": 2023, "ingresos": 35372662}, {"anio": 2024, "ingresos": 35903350}, {"anio": 2025, "ingresos": 39609509}, {"anio": 2026, "ingresos": 19253451}]}, {"categoria": "Fondos", "datos": [{"anio": 2021, "ingresos": 21641321}, {"anio": 2022, "ingresos": 25395513}, {"anio": 2023, "ingresos": 23682298}, {"anio": 2024, "ingresos": 23192631}, {"anio": 2025, "ingresos": 25674298}, {"anio": 2026, "ingresos": 9732067}]}], "top30": [{"nombre": "Soñao", "categoria": "Coctelería de la Casa", "ingresos": 115161253, "costo": 22064768, "margen": 93096485, "margen_pct": 80.84, "cantidad": 16280}, {"nombre": "Por la Tarde", "categoria": "Coctelería de la Casa", "ingresos": 107988608, "costo": 20788189, "margen": 87200419, "margen_pct": 80.75, "cantidad": 15468}, {"nombre": "Ñuñoína", "categoria": "Coctelería de la Casa", "ingresos": 103692622, "costo": 21220179, "margen": 82472443, "margen_pct": 79.54, "cantidad": 13773}, {"nombre": "Tabla de Lomito saltado", "categoria": "Para Compartir", "ingresos": 80439359, "costo": 20045270, "margen": 60394089, "margen_pct": 75.08, "cantidad": 5225}, {"nombre": "Tabla de Carnes mixtas", "categoria": "Para Compartir", "ingresos": 80088619, "costo": 17728021, "margen": 62360598, "margen_pct": 77.86, "cantidad": 5129}, {"nombre": "Tabla de la Casa", "categoria": "Para Compartir", "ingresos": 53097691, "costo": 12262870, "margen": 40834821, "margen_pct": 76.91, "cantidad": 3881}, {"nombre": "Estiválica", "categoria": "Coctelería de la Casa", "ingresos": 51176886, "costo": 13201810, "margen": 37975076, "margen_pct": 74.2, "cantidad": 6959}, {"nombre": "Summer", "categoria": "Schop Artesanal Edelstoff", "ingresos": 48132086, "costo": 8350741, "margen": 39781345, "margen_pct": 82.65, "cantidad": 10149}, {"nombre": "Amber Ale", "categoria": "Schop Artesanal Edelstoff", "ingresos": 47254989, "costo": 8458509, "margen": 38796480, "margen_pct": 82.1, "cantidad": 9941}, {"nombre": "Almeyda Mule", "categoria": "Coctelería de la Casa", "ingresos": 46990389, "costo": 7197232, "margen": 39793157, "margen_pct": 84.68, "cantidad": 6731}, {"nombre": "Ramazzotti", "categoria": "Los Spritz", "ingresos": 40156695, "costo": 9623612, "margen": 30533083, "margen_pct": 76.03, "cantidad": 6445}, {"nombre": "Pale Ale", "categoria": "Schop Artesanal Edelstoff", "ingresos": 37506173, "costo": 7331716, "margen": 30174457, "margen_pct": 80.45, "cantidad": 8430}, {"nombre": "Don Cangrejo", "categoria": "Hamburguesas y Sandwichs", "ingresos": 33184541, "costo": 8358481, "margen": 24826060, "margen_pct": 74.81, "cantidad": 3585}, {"nombre": "Tabla de carnes mixtas ", "categoria": "Para Compartir", "ingresos": 33136700, "costo": 8767679, "margen": 24369021, "margen_pct": 73.54, "cantidad": 2943}, {"nombre": "Doña Julia", "categoria": "Coctelería de la Casa", "ingresos": 32281182, "costo": 6864071, "margen": 25417111, "margen_pct": 78.74, "cantidad": 4525}, {"nombre": "IPA", "categoria": "Schop Artesanal Edelstoff", "ingresos": 31690964, "costo": 6086510, "margen": 25604454, "margen_pct": 80.79, "cantidad": 6285}, {"nombre": "A lo Gringo", "categoria": "Hamburguesas y Sandwichs", "ingresos": 31576378, "costo": 9015824, "margen": 22560554, "margen_pct": 71.45, "cantidad": 3438}, {"nombre": "Mojito", "categoria": "Los Clásicos", "ingresos": 31391133, "costo": 3843094, "margen": 27548039, "margen_pct": 87.76, "cantidad": 5332}, {"nombre": "Entremés de sopaipillas", "categoria": "Para Compartir", "ingresos": 30227283, "costo": 6329578, "margen": 23897705, "margen_pct": 79.06, "cantidad": 4137}, {"nombre": "La Burguesa", "categoria": "Hamburguesas y Sandwichs", "ingresos": 30134120, "costo": 7122056, "margen": 23012064, "margen_pct": 76.37, "cantidad": 3228}, {"nombre": "Tabla de la casa ", "categoria": "Para Compartir", "ingresos": 29317535, "costo": 5632986, "margen": 23684549, "margen_pct": 80.79, "cantidad": 2196}, {"nombre": "Ñuñoina", "categoria": "Coctelería de la Casa", "ingresos": 28906264, "costo": 3795964, "margen": 25110300, "margen_pct": 86.87, "cantidad": 4537}, {"nombre": "Alto del Carmen 35°", "categoria": "Pisco - Nacional", "ingresos": 28572951, "costo": 4966190, "margen": 23606761, "margen_pct": 82.62, "cantidad": 6111}, {"nombre": "Entraña y sus Papas", "categoria": "Fondos", "ingresos": 26714261, "costo": 9193239, "margen": 17521022, "margen_pct": 65.59, "cantidad": 1983}, {"nombre": "Entremés de Sopaipillas", "categoria": "Para Compartir", "ingresos": 25797644, "costo": 4940471, "margen": 20857173, "margen_pct": 80.85, "cantidad": 2947}, {"nombre": "Tabla Criolla", "categoria": "Para Compartir", "ingresos": 25135831, "costo": 5170697, "margen": 19965134, "margen_pct": 79.43, "cantidad": 1486}, {"nombre": "Aperol", "categoria": "Los Spritz", "ingresos": 24492114, "costo": 4342709, "margen": 20149405, "margen_pct": 82.27, "cantidad": 3980}, {"nombre": "Doña Mechada", "categoria": "Hamburguesas y Sandwichs", "ingresos": 24439173, "costo": 6167134, "margen": 18272039, "margen_pct": 74.77, "cantidad": 2649}, {"nombre": "Pobre Niña Rica", "categoria": "Hamburguesas y Sandwichs", "ingresos": 24148622, "costo": 6897004, "margen": 17251618, "margen_pct": 71.44, "cantidad": 2568}, {"nombre": "Tabla Mar y Tierra", "categoria": "Para Compartir", "ingresos": 23485362, "costo": 4335468, "margen": 19149894, "margen_pct": 81.54, "cantidad": 1392}], "medios_pago": [{"nombre": "Tarjeta Débito", "transacciones": 21923, "total": 975445481, "pct": 33.33}, {"nombre": "Tarjeta Crédito", "transacciones": 11454, "total": 604178221, "pct": 20.64}, {"nombre": "Tarjeta Débito, Tarjeta Débito", "transacciones": 3537, "total": 164093525, "pct": 5.61}, {"nombre": "Efectivo", "transacciones": 2560, "total": 78443912, "pct": 2.68}, {"nombre": "Cheque Restaurant", "transacciones": 1995, "total": 62166762, "pct": 2.12}, {"nombre": "Tarjeta Crédito, Tarjeta Crédito", "transacciones": 916, "total": 52045364, "pct": 1.78}, {"nombre": "Tarjeta Débito, Tarjeta Débito, Tarjeta ", "transacciones": 775, "total": 51471031, "pct": 1.76}, {"nombre": "Tarjeta Crédito, Tarjeta Débito", "transacciones": 929, "total": 45170758, "pct": 1.54}, {"nombre": "Tarjeta Débito, Tarjeta Crédito", "transacciones": 861, "total": 43816577, "pct": 1.5}, {"nombre": "Tarjeta Débito, Tarjeta Débito, Tarjeta ", "transacciones": 263, "total": 22058994, "pct": 0.75}], "ev_mp": [{"medio": "Tarjeta Débito", "datos": [{"anio": 2021, "total": 184476251}, {"anio": 2022, "total": 226989880}, {"anio": 2023, "total": 184070700}, {"anio": 2024, "total": 166457040}, {"anio": 2025, "total": 146295290}, {"anio": 2026, "total": 67156320}]}, {"medio": "Tarjeta Crédito", "datos": [{"anio": 2021, "total": 86816881}, {"anio": 2022, "total": 121086950}, {"anio": 2023, "total": 125253990}, {"anio": 2024, "total": 119305160}, {"anio": 2025, "total": 99483290}, {"anio": 2026, "total": 52231950}]}, {"medio": "Tarjeta Débito, Tarjeta Débito", "datos": [{"anio": 2021, "total": 31467275}, {"anio": 2022, "total": 45443160}, {"anio": 2023, "total": 34991680}, {"anio": 2024, "total": 22522980}, {"anio": 2025, "total": 19136630}, {"anio": 2026, "total": 10531800}]}, {"medio": "Efectivo", "datos": [{"anio": 2021, "total": 12003162}, {"anio": 2022, "total": 9731890}, {"anio": 2023, "total": 5342320}, {"anio": 2024, "total": 6534050}, {"anio": 2025, "total": 27533010}, {"anio": 2026, "total": 17299480}]}], "meseros": [{"nombre": "nan", "ordenes": 32364, "clientes": 83920, "ventas": 1755564734, "propinas": 164926953, "ticket_prom": 54244.37, "pct_propina": 9.39}, {"nombre": "Leandro Savorani Gutierrez", "ordenes": 8962, "clientes": 22799, "ventas": 491160600, "propinas": 43920163, "ticket_prom": 54804.8, "pct_propina": 8.94}, {"nombre": "Nay Alejandra Castillo Fernandez", "ordenes": 2709, "clientes": 10686, "ventas": 250607670, "propinas": 24282363, "ticket_prom": 92509.29, "pct_propina": 9.69}, {"nombre": "Valentina Tabata Sanchez Gonzalez", "ordenes": 2691, "clientes": 8291, "ventas": 186085930, "propinas": 17957647, "ticket_prom": 69151.22, "pct_propina": 9.65}, {"nombre": "Davis Zea", "ordenes": 1161, "clientes": 5010, "ventas": 123716310, "propinas": 12160751, "ticket_prom": 106560.13, "pct_propina": 9.83}, {"nombre": "Israel San Martin", "ordenes": 569, "clientes": 1766, "ventas": 41629370, "propinas": 4140866, "ticket_prom": 73162.34, "pct_propina": 9.95}, {"nombre": "Carlos Cardona", "ordenes": 298, "clientes": 1388, "ventas": 36165400, "propinas": 3529046, "ticket_prom": 121360.4, "pct_propina": 9.76}, {"nombre": "Leandro Savorani", "ordenes": 556, "clientes": 1530, "ventas": 32291780, "propinas": 3025937, "ticket_prom": 58078.74, "pct_propina": 9.37}, {"nombre": "Valentina Sanchez", "ordenes": 49, "clientes": 171, "ventas": 4277590, "propinas": 403523, "ticket_prom": 87297.76, "pct_propina": 9.43}, {"nombre": "Nay", "ordenes": 32, "clientes": 114, "ventas": 2360800, "propinas": 217950, "ticket_prom": 73775.0, "pct_propina": 9.23}, {"nombre": "Nicolas Pino", "ordenes": 58, "clientes": 156, "ventas": 2238440, "propinas": 208627, "ticket_prom": 38593.79, "pct_propina": 9.32}, {"nombre": "Mauricio Villagran", "ordenes": 20, "clientes": 24, "ventas": 711321, "propinas": 0, "ticket_prom": 35566.05, "pct_propina": 0.0}, {"nombre": "Patio Almeyda", "ordenes": 3, "clientes": 3, "ventas": 79470, "propinas": 0, "ticket_prom": 26490.0, "pct_propina": 0.0}, {"nombre": "Rodrigo Villagran", "ordenes": 3, "clientes": 5, "ventas": 55560, "propinas": 3386, "ticket_prom": 18520.0, "pct_propina": 6.09}, {"nombre": "Rodrigo Villagran Salah", "ordenes": 2, "clientes": 3, "ventas": 37380, "propinas": 0, "ticket_prom": 18690.0, "pct_propina": 0.0}], "zonas": [{"zona": "TERRAZA", "ordenes": 48962, "ventas": 2908896645, "clientes": 134812, "ticket_prom": 59411.31, "pct": 99.38}, {"zona": "nan", "ordenes": 559, "ventas": 17679340, "clientes": 1046, "ticket_prom": 31626.73, "pct": 0.6}, {"zona": "SALONES", "ordenes": 11, "ventas": 429250, "clientes": 18, "ticket_prom": 39022.73, "pct": 0.01}], "descuentos": {"por_anio": [{"anio": 2021, "descuentos": 11147311, "pct": 2.75}, {"anio": 2022, "descuentos": 13374800, "pct": 2.53}, {"anio": 2023, "descuentos": 12196004, "pct": 2.41}, {"anio": 2024, "descuentos": 27309742, "pct": 4.94}, {"anio": 2025, "descuentos": 39973782, "pct": 6.34}, {"anio": 2026, "descuentos": 17723045, "pct": 5.8}], "total": 122522614, "pct_global": 4.19}, "dist_clientes": [{"clientes": 1, "count": 6173}, {"clientes": 2, "count": 30450}, {"clientes": 3, "count": 5259}, {"clientes": 4, "count": 3663}, {"clientes": 5, "count": 1019}, {"clientes": 6, "count": 610}, {"clientes": 7, "count": 360}, {"clientes": 8, "count": 265}, {"clientes": 9, "count": 184}, {"clientes": 10, "count": 1549}], "comp_years": [{"anio": 2021, "meses": [0, 0, 0, 0, 0, 0, 38889400, 50789010, 73351613, 81690237, 77955924, 82079460]}, {"anio": 2022, "meses": [68033841, 188250, 0, 28765000, 52771080, 42517810, 51015150, 51447740, 53499300, 64642480, 53808490, 61471440]}, {"anio": 2023, "meses": [57780420, 25192860, 49316720, 42462080, 39520130, 30477350, 39190260, 39212230, 38268730, 45618180, 41848230, 56683270]}, {"anio": 2024, "meses": [48498080, 43705470, 49517370, 40072280, 33354850, 41590800, 40050120, 46966320, 37401760, 56591040, 60748100, 54013170]}, {"anio": 2025, "meses": [63029220, 46395060, 60929370, 48666940, 51830710, 44648710, 47326850, 53261920, 40943900, 55923400, 60364740, 57338120]}, {"anio": 2026, "meses": [67902870, 52252370, 46579760, 47207200, 50318550, 35874980, 5214520, 0, 0, 0, 0, 0]}], "recomendaciones": {"cat_mejor_margen": "Por Copa", "cat_peor_margen": "Tequila Shots", "dia_debil": "Lunes", "mes_debil": "Feb", "mes_fuerte": "Ene", "crec_ticket_pct": 62.67, "ticket_actual": 80677.89, "ticket_inicial": 49595.8}
+};
+
+// ============================================================
+// FORMATTERS
+// ============================================================
+function fmt(n, decimals=0) {
+  if (n === null || n === undefined) return '-';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(2).replace('.', ',') + 'B';
+  if (n >= 1e6) return '$' + Math.round(n/1e6).toLocaleString('es-CL') + 'M';
+  return '$' + Math.round(n).toLocaleString('es-CL');
+}
+function fmtN(n) {
+  return Math.round(n).toLocaleString('es-CL');
+}
+function fmtFull(n) {
+  return '$' + Math.round(n).toLocaleString('es-CL');
+}
+function fmtM(n) {
+  return '$' + (n/1e6).toFixed(1).replace('.',',') + 'M';
+}
+
+// ============================================================
+// CHART DEFAULTS
+// ============================================================
+Chart.defaults.color = '#8888aa';
+Chart.defaults.borderColor = '#2a2a3e';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+const GOLD = '#c9a84c';
+const GOLD2 = '#e8c96a';
+const RED = '#e05555';
+const GREEN = '#4caf82';
+const BLUE = '#5599ff';
+const PURPLE = '#9966ff';
+const ORANGE = '#ff8844';
+const TEAL = '#44ccbb';
+const PINK = '#ff66aa';
+
+const YEAR_COLORS = {
+  2022: '#5599ff',
+  2023: '#ff8844',
+  2024: '#44ccbb',
+  2025: '#c9a84c',
+  2026: '#ff66aa'
+};
+
+const CAT_COLORS = [
+  '#c9a84c','#5599ff','#4caf82','#ff8844','#9966ff',
+  '#ff66aa','#44ccbb','#e05555','#88ccff','#ffcc44',
+  '#66ff99','#cc88ff','#888888'
+];
+
+// ============================================================
+// CHART REGISTRY
+// ============================================================
+const charts = {};
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let sectionInited = {};
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  const items = document.querySelectorAll('.nav-item');
+  items.forEach(item => {
+    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(name)) {
+      item.classList.add('active');
+    }
+  });
+  closeSidebar();
+  if (!sectionInited[name]) {
+    sectionInited[name] = true;
+    setTimeout(() => initSection(name), 50);
+  }
+}
+
+function initSection(name) {
+  switch(name) {
+    case 'ventas': initVentas(); break;
+    case 'productos': initProductos(); break;
+    case 'operaciones': initOperaciones(); break;
+    case 'equipo': initEquipo(); break;
+    case 'financiero': initFinanciero(); break;
+    case 'contexto': initContexto(); break;
+    case 'recomendaciones': initRecomendaciones(); break;
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ============================================================
+// KPI COUNTER ANIMATION
+// ============================================================
+function animateCounter(el, target, formatter, duration=1200) {
+  let start = null;
+  const step = (ts) => {
+    if (!start) start = ts;
+    const progress = Math.min((ts - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = formatter(target * ease);
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = formatter(target);
+  };
+  requestAnimationFrame(step);
+}
+
+// ============================================================
+// SECTION: RESUMEN
+// ============================================================
+function initResumen() {
+  const kpis = [
+    { label: 'Ingresos Totales', value: DATA.kpis.ingresos_totales, fmt: n => '$' + (n/1e9).toFixed(2).replace('.',',')+'B', sub: 'jul 2021 – jul 2026', icon: '💰' },
+    { label: 'Boletas Emitidas', value: DATA.kpis.pagos_totales, fmt: n => fmtN(n), sub: 'transacciones totales', icon: '🧾' },
+    { label: 'Clientes Atendidos', value: DATA.kpis.clientes_totales, fmt: n => fmtN(n), sub: 'personas únicas estimadas', icon: '👤' },
+    { label: 'Ticket Promedio', value: DATA.kpis.ticket_promedio, fmt: n => '$' + fmtN(n), sub: 'por boleta', icon: '🎫' },
+    { label: 'Ticket / Persona', value: DATA.kpis.ticket_por_persona, fmt: n => '$' + fmtN(n), sub: 'consumo individual', icon: '🍹' },
+    { label: 'Propinas', value: DATA.kpis.propinas_totales, fmt: n => '$' + Math.round(n/1e6)+'M', sub: DATA.kpis.pct_propina + '% sobre ventas', icon: '🤝' },
+    { label: 'Noches de Operación', value: DATA.kpis.noches_operacion, fmt: n => fmtN(n), sub: 'noches abiertas', icon: '🌙' },
+    { label: 'Productos en Carta', value: DATA.kpis.productos_distintos, fmt: n => fmtN(n), sub: 'ítems distintos vendidos', icon: '📋' }
+  ];
+
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = '';
+  kpis.forEach((k, i) => {
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.innerHTML = `
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" id="kpi-val-${i}">$0</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-icon">${k.icon}</div>
+    `;
+    grid.appendChild(card);
+    setTimeout(() => {
+      animateCounter(document.getElementById('kpi-val-'+i), k.value, k.fmt, 1400);
+    }, i * 80);
+  });
+
+  // Chart anual (resumen)
+  const ctx1 = document.getElementById('chartAnualResumen').getContext('2d');
+  charts.anualResumen = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: DATA.por_anio.map(d => d.anio),
+      datasets: [{
+        label: 'Ingresos',
+        data: DATA.por_anio.map(d => d.ingresos/1e6),
+        backgroundColor: DATA.por_anio.map((d,i) => i === DATA.por_anio.length-1 ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.75)'),
+        borderColor: GOLD,
+        borderWidth: 1,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' $' + ctx.parsed.y.toFixed(0) + 'M' }
+      }},
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v+'M' } }
+      }
+    }
+  });
+
+  // Chart ticket (resumen)
+  const ctx2 = document.getElementById('chartTicketResumen').getContext('2d');
+  charts.ticketResumen = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: DATA.por_anio.map(d => d.anio),
+      datasets: [{
+        label: 'Ticket promedio',
+        data: DATA.por_anio.map(d => d.ticket_prom/1000),
+        borderColor: GOLD,
+        backgroundColor: 'rgba(201,168,76,0.15)',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: GOLD,
+        pointRadius: 5,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' $' + (ctx.parsed.y*1000).toLocaleString('es-CL') }
+      }},
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v+'K' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// SECTION: VENTAS
+// ============================================================
+let serieMode = 'ingresos';
+let compYearFilter = 'all';
+
+function initVentas() {
+  buildChartAnualVentas();
+  buildChartSerieMensual();
+  buildChartEstacional();
+  buildChartCompAnios();
+}
+
+function buildChartAnualVentas() {
+  destroyChart('anualVentas');
+  const ctx = document.getElementById('chartAnualVentas').getContext('2d');
+  charts.anualVentas = new Chart(ctx, {
+    data: {
+      labels: DATA.por_anio.map(d => d.anio),
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Ingresos (M$)',
+          data: DATA.por_anio.map(d => d.ingresos/1e6),
+          backgroundColor: DATA.por_anio.map((_,i) => i===DATA.por_anio.length-1 ? 'rgba(201,168,76,0.45)' : 'rgba(201,168,76,0.8)'),
+          borderColor: GOLD, borderWidth: 1, borderRadius: 6, yAxisID: 'y'
+        },
+        {
+          type: 'line',
+          label: 'Ticket Promedio',
+          data: DATA.por_anio.map(d => d.ticket_prom/1000),
+          borderColor: '#5599ff',
+          backgroundColor: 'transparent',
+          tension: 0.4, pointBackgroundColor: '#5599ff', pointRadius: 5, borderWidth: 2,
+          yAxisID: 'y2'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8888aa', boxWidth: 14 } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' }, title: { display: true, text: 'Ingresos (M$)', color: GOLD } },
+        y2: { position: 'right', grid: { display: false }, ticks: { callback: v => '$'+v+'K' }, title: { display: true, text: 'Ticket (K$)', color: BLUE } }
+      }
+    }
+  });
+}
+
+function buildChartSerieMensual() {
+  destroyChart('serieMensual');
+  const labels = DATA.serie_mensual.map(d => d.mes);
+  let datos, color, bgColor, label;
+  if (serieMode === 'ingresos') {
+    datos = DATA.serie_mensual.map(d => d.ingresos/1e6);
+    color = GOLD; bgColor = 'rgba(201,168,76,0.15)'; label = 'Ingresos (M$)';
+  } else if (serieMode === 'boletas') {
+    datos = DATA.serie_mensual.map(d => d.pagos);
+    color = BLUE; bgColor = 'rgba(85,153,255,0.15)'; label = 'Boletas';
+  } else {
+    datos = DATA.serie_mensual.map(d => d.clientes);
+    color = GREEN; bgColor = 'rgba(76,175,130,0.15)'; label = 'Clientes';
+  }
+  const ctx = document.getElementById('chartSerieMensual').getContext('2d');
+  charts.serieMensual = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label, data: datos,
+        borderColor: color,
+        backgroundColor: bgColor,
+        tension: 0.3, fill: true, borderWidth: 2, pointRadius: 1.5, pointHoverRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => serieMode==='ingresos' ? ' $'+ctx.parsed.y.toFixed(1)+'M' : ' '+fmtN(ctx.parsed.y)
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a3e' }, ticks: { maxTicksLimit: 20, maxRotation: 45 } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => serieMode==='ingresos' ? '$'+v.toFixed(0)+'M' : fmtN(v) } }
+      }
+    }
+  });
+}
+
+function toggleSerie(mode, btn) {
+  serieMode = mode;
+  document.querySelectorAll('#toggleGrupoSerie .toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildChartSerieMensual();
+}
+
+function buildChartEstacional() {
+  destroyChart('estacional');
+  const maxVal = Math.max(...DATA.estacionalidad_mes.map(d => d.ingreso_prom));
+  const ctx = document.getElementById('chartEstacional').getContext('2d');
+  charts.estacional = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DATA.estacionalidad_mes.map(d => d.mes),
+      datasets: [{
+        label: 'Ingreso Promedio',
+        data: DATA.estacionalidad_mes.map(d => d.ingreso_prom/1e6),
+        backgroundColor: DATA.estacionalidad_mes.map(d => {
+          const ratio = d.ingreso_prom / maxVal;
+          if (ratio > 0.8) return 'rgba(201,168,76,0.9)';
+          if (ratio > 0.6) return 'rgba(201,168,76,0.65)';
+          if (ratio > 0.4) return 'rgba(201,168,76,0.4)';
+          return 'rgba(224,85,85,0.6)';
+        }),
+        borderRadius: 6, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' $'+ctx.parsed.y.toFixed(1)+'M prom.' }
+      }},
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } }
+      }
+    }
+  });
+}
+
+function buildChartCompAnios() {
+  destroyChart('compAnios');
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  let yearsToShow = DATA.comp_years;
+  if (compYearFilter !== 'all') {
+    yearsToShow = DATA.comp_years.filter(d => d.anio === parseInt(compYearFilter));
+  }
+  const ctx = document.getElementById('chartCompAnios').getContext('2d');
+  charts.compAnios = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: meses,
+      datasets: yearsToShow.map(y => ({
+        label: y.anio.toString(),
+        data: y.meses.map(v => v > 0 ? v/1e6 : null),
+        borderColor: YEAR_COLORS[y.anio] || GOLD,
+        backgroundColor: 'transparent',
+        tension: 0.3, borderWidth: 2,
+        pointRadius: 3, pointHoverRadius: 5,
+        spanGaps: false
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8888aa', boxWidth: 14 } },
+        tooltip: { callbacks: { label: ctx => ' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(1)+'M' } }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } }
+      }
+    }
+  });
+}
+
+function toggleCompYear(filter, btn) {
+  compYearFilter = filter;
+  const group = btn.parentElement;
+  group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildChartCompAnios();
+}
+
+// ============================================================
+// SECTION: PRODUCTOS
+// ============================================================
+function initProductos() {
+  buildDonutCat();
+  buildCatTable();
+  buildTopProd();
+  buildEvoCat();
+}
+
+function buildDonutCat() {
+  destroyChart('donutCat');
+  const ctx = document.getElementById('chartDonutCat').getContext('2d');
+  charts.donutCat = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: DATA.por_categoria.map(c => c.nombre.length > 18 ? c.nombre.slice(0,18)+'…' : c.nombre),
+      datasets: [{
+        data: DATA.por_categoria.map(c => c.ingresos/1e6),
+        backgroundColor: CAT_COLORS,
+        borderColor: '#181824',
+        borderWidth: 2,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' $'+ctx.parsed.toFixed(0)+'M ('+DATA.por_categoria[ctx.dataIndex].pct+'%)' } }
+      }
+    }
+  });
+}
+
+function buildCatTable() {
+  const maxIng = Math.max(...DATA.por_categoria.map(c => c.ingresos));
+  const html = `
+    <table>
+      <thead><tr>
+        <th>Categoría</th>
+        <th class="td-num">Ingresos</th>
+        <th class="td-num">%</th>
+        <th class="td-num">Margen%</th>
+        <th class="td-num">Unidades</th>
+      </tr></thead>
+      <tbody>
+        ${DATA.por_categoria.map((c,i) => `
+          <tr>
+            <td>
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${CAT_COLORS[i]};margin-right:6px;vertical-align:middle"></span>
+              <span style="font-size:0.82rem">${c.nombre}</span>
+              <div class="cat-row-bar" style="width:${(c.ingresos/maxIng*100).toFixed(0)}%;background:${CAT_COLORS[i]}33;border-left:2px solid ${CAT_COLORS[i]}"></div>
+            </td>
+            <td class="td-num td-gold" style="font-size:0.82rem">${fmtM(c.ingresos)}</td>
+            <td class="td-num" style="font-size:0.82rem">${c.pct}%</td>
+            <td class="td-num" style="font-size:0.82rem;color:${c.margen_pct>78?GREEN:c.margen_pct>72?GOLD:RED}">${c.margen_pct.toFixed(1)}%</td>
+            <td class="td-num td-muted" style="font-size:0.82rem">${fmtN(c.cantidad)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('catTable').innerHTML = html;
+}
+
+function buildTopProd() {
+  destroyChart('topProd');
+  const top20 = DATA.top30.slice(0, 20);
+  const ctx = document.getElementById('chartTopProd').getContext('2d');
+  charts.topProd = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top20.map(p => p.nombre),
+      datasets: [{
+        label: 'Ingresos (M$)',
+        data: top20.map(p => p.ingresos/1e6),
+        backgroundColor: top20.map(p => {
+          if (p.margen_pct >= 82) return 'rgba(76,175,130,0.8)';
+          if (p.margen_pct >= 76) return 'rgba(201,168,76,0.8)';
+          return 'rgba(224,85,85,0.7)';
+        }),
+        borderWidth: 0, borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const p = top20[ctx.dataIndex];
+              return [` $${ctx.parsed.x.toFixed(1)}M`, ` Margen: ${p.margen_pct}%`, ` Unidades: ${fmtN(p.cantidad)}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function buildEvoCat() {
+  destroyChart('evoCat');
+  const anios = [2021, 2022, 2023, 2024, 2025];
+  const catColors = [GOLD, BLUE, GREEN, ORANGE, PURPLE, TEAL];
+  const ctx = document.getElementById('chartEvoCat').getContext('2d');
+  charts.evoCat = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: anios,
+      datasets: DATA.ev_cat_anio.map((cat, i) => ({
+        label: cat.categoria.length > 22 ? cat.categoria.slice(0,22)+'…' : cat.categoria,
+        data: anios.map(a => {
+          const d = cat.datos.find(x => x.anio === a);
+          return d ? d.ingresos/1e6 : null;
+        }),
+        borderColor: catColors[i],
+        backgroundColor: 'transparent',
+        tension: 0.3, borderWidth: 2,
+        pointRadius: 4, pointHoverRadius: 6
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8888aa', boxWidth: 14, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(1)+'M' } }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// SECTION: OPERACIONES
+// ============================================================
+function initOperaciones() {
+  buildChartDias();
+  buildChartHoras();
+  buildChartPagos();
+  buildChartDescuentos();
+  buildTablaDias();
+}
+
+function buildChartDias() {
+  destroyChart('dias');
+  const ctx = document.getElementById('chartDias').getContext('2d');
+  const maxD = Math.max(...DATA.por_dia.map(d => d.ingresos));
+  charts.dias = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DATA.por_dia.map(d => d.dia),
+      datasets: [{
+        label: 'Ingresos',
+        data: DATA.por_dia.map(d => d.ingresos/1e6),
+        backgroundColor: DATA.por_dia.map(d => {
+          const r = d.ingresos/maxD;
+          if (r > 0.75) return 'rgba(201,168,76,0.9)';
+          if (r > 0.4) return 'rgba(201,168,76,0.6)';
+          return 'rgba(201,168,76,0.35)';
+        }),
+        borderRadius: 6, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' $'+ctx.parsed.y.toFixed(1)+'M' }
+      }},
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } }
+      }
+    }
+  });
+}
+
+function buildChartHoras() {
+  destroyChart('horas');
+  const horas = DATA.por_hora;
+  const labels = horas.map(h => h.hora === 0 ? '00:00' : (h.hora < 10 ? '0'+h.hora : h.hora)+':00');
+  const maxH = Math.max(...horas.map(h => h.ingresos));
+  const ctx = document.getElementById('chartHoras').getContext('2d');
+  charts.horas = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Ingresos',
+        data: horas.map(h => h.ingresos/1e6),
+        backgroundColor: horas.map(h => {
+          const r = h.ingresos/maxH;
+          if (r > 0.8) return 'rgba(201,168,76,0.95)';
+          if (r > 0.5) return 'rgba(201,168,76,0.7)';
+          if (r > 0.2) return 'rgba(201,168,76,0.45)';
+          return 'rgba(201,168,76,0.25)';
+        }),
+        borderRadius: 4, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ' $'+ctx.parsed.y.toFixed(1)+'M · '+horas[ctx.dataIndex].pagos+' boletas' }
+      }},
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } }
+      }
+    }
+  });
+}
+
+function buildChartPagos() {
+  destroyChart('pagos');
+  const ctx = document.getElementById('chartPagos').getContext('2d');
+  charts.pagos = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: DATA.medios_pago.map(p => p.nombre),
+      datasets: [{
+        data: DATA.medios_pago.map(p => p.pct),
+        backgroundColor: [GOLD, BLUE, GREEN, ORANGE, PURPLE, '#888888'],
+        borderColor: '#181824', borderWidth: 2, hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8888aa', boxWidth: 12, padding: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ' '+ctx.label+': '+ctx.parsed+'%' } }
+      }
+    }
+  });
+}
+
+function buildChartDescuentos() {
+  destroyChart('descuentos');
+  const ctx = document.getElementById('chartDescuentos').getContext('2d');
+  const threshold = 4.0;
+  charts.descuentos = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: DATA.descuentos_anio.map(d => d.anio),
+      datasets: [
+        {
+          label: 'Descuentos %',
+          data: DATA.descuentos_anio.map(d => d.pct),
+          borderColor: DATA.descuentos_anio.map(d => d.pct > threshold ? RED : GREEN),
+          segment: {
+            borderColor: ctx => ctx.p1.parsed.y > threshold ? RED : GREEN
+          },
+          backgroundColor: 'rgba(224,85,85,0.08)',
+          tension: 0.3, fill: true, borderWidth: 2.5,
+          pointBackgroundColor: DATA.descuentos_anio.map(d => d.pct > threshold ? RED : GREEN),
+          pointRadius: 6
+        },
+        {
+          label: 'Umbral 4%',
+          data: DATA.descuentos_anio.map(() => threshold),
+          borderColor: 'rgba(224,85,85,0.5)',
+          borderDash: [6, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8888aa', boxWidth: 14 } },
+        tooltip: { callbacks: { label: ctx => ' '+ctx.parsed.y.toFixed(2)+'%' } }
+      },
+      scales: {
+        x: { grid: { color: '#2a2a3e' } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => v+'%' }, min: 0, max: 8 }
+      }
+    }
+  });
+}
+
+function buildTablaDias() {
+  const totalIng = DATA.por_dia.reduce((s,d) => s+d.ingresos, 0);
+  const html = `
+    <table>
+      <thead><tr>
+        <th>Día</th>
+        <th class="td-num">Ingresos</th>
+        <th class="td-num">% Total</th>
+        <th class="td-num">Boletas</th>
+        <th class="td-num">Clientes</th>
+        <th class="td-num">Ticket Prom.</th>
+      </tr></thead>
+      <tbody>
+        ${DATA.por_dia.map(d => `
+          <tr>
+            <td class="td-gold">${d.dia}</td>
+            <td class="td-num">${fmtM(d.ingresos)}</td>
+            <td class="td-num">${(d.ingresos/totalIng*100).toFixed(1)}%</td>
+            <td class="td-num td-muted">${fmtN(d.pagos)}</td>
+            <td class="td-num td-muted">${fmtN(d.clientes)}</td>
+            <td class="td-num">${fmtFull(d.ticket_prom)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('tablaDiasWrap').innerHTML = html;
+}
+
+// ============================================================
+// SECTION: EQUIPO
+// ============================================================
+let meseroSort = { col: 'ventas', dir: -1 };
+
+function initEquipo() {
+  renderTablaMeseros();
+  buildChartMeseros();
+}
+
+function renderTablaMeseros() {
+  const cols = [
+    { key: 'nombre', label: 'Mesero', align: '' },
+    { key: 'ordenes', label: 'Órdenes', align: 'td-num' },
+    { key: 'clientes', label: 'Clientes', align: 'td-num' },
+    { key: 'ventas', label: 'Ventas Totales', align: 'td-num td-gold' },
+    { key: 'ticket_prom', label: 'Ticket Prom.', align: 'td-num' },
+    { key: 'pct_propina', label: '% Propina', align: 'td-num' }
+  ];
+  const sorted = [...DATA.meseros].sort((a,b) => {
+    const va = a[meseroSort.col], vb = b[meseroSort.col];
+    return typeof va === 'string' ? va.localeCompare(vb) * meseroSort.dir : (va - vb) * meseroSort.dir;
+  });
+  const html = `
+    <table>
+      <thead><tr>
+        ${cols.map(c => `<th onclick="sortMeseros('${c.key}')" style="cursor:pointer">
+          ${c.label} ${meseroSort.col===c.key ? (meseroSort.dir===-1?'↓':'↑') : '↕'}
+        </th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${sorted.map((m,i) => `
+          <tr>
+            <td>
+              <span style="display:inline-flex;align-items:center;gap:8px">
+                <span style="width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,0.15);display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:${GOLD};font-weight:700">${i+1}</span>
+                ${m.nombre}
+              </span>
+            </td>
+            <td class="td-num">${fmtN(m.ordenes)}</td>
+            <td class="td-num">${fmtN(m.clientes)}</td>
+            <td class="td-num td-gold">${fmtM(m.ventas)}</td>
+            <td class="td-num">${fmtFull(m.ticket_prom)}</td>
+            <td class="td-num" style="color:${m.pct_propina>=9.5?GREEN:GOLD}">${m.pct_propina.toFixed(2)}%</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('tablaMeserosWrap').innerHTML = html;
+}
+
+function sortMeseros(col) {
+  if (meseroSort.col === col) meseroSort.dir *= -1;
+  else { meseroSort.col = col; meseroSort.dir = -1; }
+  renderTablaMeseros();
+}
+
+function buildChartMeseros() {
+  destroyChart('meserosVentas');
+  destroyChart('meserosTicket');
+
+  const ctx1 = document.getElementById('chartMeserosVentas').getContext('2d');
+  charts.meserosVentas = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: DATA.meseros.map(m => m.nombre.split(' ')[0]+' '+m.nombre.split(' ')[1]),
+      datasets: [{
+        label: 'Ventas',
+        data: DATA.meseros.map(m => m.ventas/1e6),
+        backgroundColor: [GOLD,'rgba(201,168,76,0.7)','rgba(201,168,76,0.55)','rgba(201,168,76,0.4)','rgba(201,168,76,0.3)','rgba(201,168,76,0.2)'],
+        borderRadius: 6, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#2a2a3e' }, ticks: { font: { size: 10 }, maxRotation: 20 } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'M' } }
+      }
+    }
+  });
+
+  const ctx2 = document.getElementById('chartMeserosTicket').getContext('2d');
+  charts.meserosTicket = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: DATA.meseros.map(m => m.nombre.split(' ')[0]+' '+m.nombre.split(' ')[1]),
+      datasets: [{
+        label: 'Ticket promedio',
+        data: DATA.meseros.map(m => m.ticket_prom/1000),
+        backgroundColor: [BLUE,'rgba(85,153,255,0.7)','rgba(85,153,255,0.55)','rgba(85,153,255,0.4)','rgba(85,153,255,0.3)','rgba(85,153,255,0.2)'],
+        borderRadius: 6, borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#2a2a3e' }, ticks: { font: { size: 10 }, maxRotation: 20 } },
+        y: { grid: { color: '#2a2a3e' }, ticks: { callback: v => '$'+v.toFixed(0)+'K' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// SECTION: RECOMENDACIONES
+// ============================================================
+const RECS = [
+  {
+    icon: '📉',
+    title: 'Política de Descuentos Fuera de Control',
+    urgencia: 'red',
+    urgencia_label: 'URGENTE',
+    body: 'Los descuentos y cortesías escalaron de 2.4% (2023) a 6.3% (2025), más que duplicándose. Con $630M de ventas en 2025, esto representa ~$40M en ingresos resignados anualmente.',
+    accion: 'Auditar inmediatamente los tipos de descuento aplicados por mesero. Implementar límite de descreción máximo por turno y requerir autorización del encargado para descuentos > $5.000.',
+    impacto: 'Alto'
+  },
+  {
+    icon: '⚠️',
+    title: 'Riesgo Crítico: Dependencia de Terraza',
+    urgencia: 'red',
+    urgencia_label: 'URGENTE',
+    body: 'La terraza representa el 99.4% de las ventas. Un cierre por obra municipal, cambio climático severo o regulación de ruido puede paralizar el negocio completamente en 24 horas.',
+    accion: 'Desarrollar plan de contingencia: negociar uso de espacio interior de respaldo, evaluar carpa o techo retráctil para temporadas de lluvia. Documentar contactos municipales clave.',
+    impacto: 'Alto'
+  },
+  {
+    icon: '📅',
+    title: 'Estrategia para Febrero (Abismo Estacional)',
+    urgencia: 'yellow',
+    urgencia_label: 'IMPORTANTE',
+    body: 'Febrero promedia $28.9M vs $59.3M en enero — una caída del 51%. El local probablemente cierra o reduce drásticamente. Esta brecha genera costos fijos sin cobertura.',
+    accion: 'Definir política clara: ¿cierre programado con comunicación oficial (genera expectativa y fidelización) o operación mínima 3 noches/semana? Calcular break-even mensual para tomar decisión con datos.',
+    impacto: 'Medio'
+  },
+  {
+    icon: '🍸',
+    title: 'Ampliar Carta de Spritz (Mejor Margen)',
+    urgencia: 'green',
+    urgencia_label: 'OPORTUNIDAD',
+    body: 'Los Spritz tienen el mejor margen bruto de la carta (82.2%) y crecieron de $8.5M (2021) a $31M (2025), un 265%. El Ramazzotti solo genera $39.5M. La categoría está subdesarrollada.',
+    accion: 'Agregar 3-4 variantes de Spritz con identidad propia del bar (ej. Almeyda Spritz con hierbas locales). Ubicarlos visualmente en la sección premium de la carta. Meta: duplicar categoría a $60M en 12 meses.',
+    impacto: 'Alto'
+  },
+  {
+    icon: '🍹',
+    title: 'Potenciar Mojito en Carta (Margen Récord)',
+    urgencia: 'green',
+    urgencia_label: 'OPORTUNIDAD',
+    body: 'El Mojito tiene el margen más alto entre cócteles clásicos (87.8%) pero no está entre los 5 más vendidos. Es un producto conocido, fácil de recomendar y con altísimo retorno.',
+    accion: 'Mover el Mojito a posición destacada en la carta (primera página, precio ancla). Capacitar a meseros para recomendarlo como primera sugerencia. Crear versión "Almeyda Mojito" con twist local.',
+    impacto: 'Medio'
+  },
+  {
+    icon: '📊',
+    title: 'Revisión del Modelo de Días de Operación',
+    urgencia: 'yellow',
+    urgencia_label: 'IMPORTANTE',
+    body: 'Viernes y Sábado generan el 55% de los ingresos. Lunes solo el 4.4% ($127M vs $772M). El costo de operar lunes incluye nómina, insumos y desgaste sin retorno proporcional.',
+    accion: 'Calcular margen neto por día de la semana incluyendo costos variables. Evaluar operar solo Jue-Dom con horario extendido, o convertir lunes en evento privado/cerrado con renta mínima garantizada.',
+    impacto: 'Medio'
+  },
+  {
+    icon: '📈',
+    title: 'El Ticket Sube, Pero los Clientes Bajan',
+    urgencia: 'yellow',
+    urgencia_label: 'IMPORTANTE',
+    body: 'El ticket creció +57% (2022→2025: $50K→$78K), pero las boletas bajaron de 10.522 a 8.547. El bar está sirviendo menos mesas pero más caras. Riesgo de perder clientes frecuentes de menor gasto.',
+    accion: 'Revisar si la pérdida de mesas es capacidad (terraza llena) o precio (clientes que ya no vienen). Crear "combo de entrada" bajo ticket para atraer grupos más jóvenes. Analizar Net Promoter Score.',
+    impacto: 'Alto'
+  },
+  {
+    icon: '💳',
+    title: 'Monitorear Alza del Efectivo',
+    urgencia: 'yellow',
+    urgencia_label: 'IMPORTANTE',
+    body: 'El efectivo creció significativamente en 2024-2025. Esto puede indicar falla recurrente en terminales POS, preferencia creciente del cliente, o en el peor caso, transacciones fuera del sistema.',
+    accion: 'Revisar logs de fallas de terminales POS por turno. Comparar efectivo declarado vs cobros en caja. Si hay discrepancia, implementar conteo de caja obligatorio al cierre de cada turno con firma.',
+    impacto: 'Alto'
+  }
+];
+
+// ============================================================
+// FINANCIERO & CAJA
+// ============================================================
+function initFinanciero() {
+  const GOLD='#c9a84c', GOLD2='rgba(201,168,76,0.18)', RED='#e05555', GREEN='#4caf82',
+        BLUE='#5599ff', PURPLE='#9966ff', ORANGE='#ff8844', TEAL='#44ccbb',
+        GRID='#2a2a3e', TEXT='#8888aa';
+
+  const cOpts = (extra={}) => ({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},tooltip:{...extra.tooltip}},
+    scales:{x:{grid:{color:GRID},ticks:{color:TEXT}},y:{grid:{color:GRID},ticks:{color:TEXT}}}
+  });
+
+  // ── KPI cards ──────────────────────────────────────────────
+  const kpis = [
+    {label:'Margen Bruto Total', val:'$'+Math.round(DFIN.kpis.margen_bruto_total/1e9*100)/100+'B', sub:DFIN.kpis.margen_bruto_pct+'% sobre ventas netas', icon:'📈', hi:true},
+    {label:'Food Cost %', val:DFIN.kpis.food_cost_pct+'%', sub:'Costo mercadería / ventas', icon:'🧾'},
+    {label:'IVA Generado', val:'$'+Math.round(DFIN.kpis.iva_total/1e6)+'M', sub:'Total acumulado 2021–2026', icon:'🏦'},
+    {label:'Ingresos / Noche', val:'$'+fmtN(Math.round(DFIN.kpis.ingresos_x_noche)), sub:'Promedio noche operativa', icon:'🌙'},
+    {label:'Clientes / Noche', val:DFIN.kpis.clientes_x_noche, sub:'Promedio histórico', icon:'👥'},
+    {label:'Ítems / Orden', val:DFIN.kpis.items_x_orden, sub:'Productos por boleta', icon:'🍽️'},
+    {label:'Duración Promedio', val:Math.round(DFIN.kpis.duracion_prom_min)+' min', sub:'Mediana: '+Math.round(DFIN.kpis.duracion_median_min)+' min', icon:'⏱️'},
+    {label:'Valor por Ítem', val:'$'+fmtN(Math.round(DFIN.kpis.neto_x_item)), sub:'Ingreso neto por unidad vendida', icon:'💲'}
+  ];
+  const grid = document.getElementById('kpiFinGrid');
+  grid.innerHTML = kpis.map((k,i) => `
+    <div class="kpi-card" style="${k.hi?'border:1px solid rgba(201,168,76,.4)':''}">
+      <div class="kpi-label">${k.icon} ${k.label}</div>
+      <div class="kpi-value" style="${k.hi?'color:var(--gold)':''}">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // ── P&L stacked bar ──────────────────────────────────────
+  const anios = DFIN.waterfall_anio.map(d=>d.anio);
+  new Chart(document.getElementById('chartPnlAnio'), {
+    type:'bar',
+    data:{
+      labels: anios,
+      datasets:[
+        {label:'Margen Bruto', data: DFIN.waterfall_anio.map(d=>Math.round(d.margen_bruto/1e6)),
+         backgroundColor:'rgba(201,168,76,0.8)', stack:'pnl'},
+        {label:'Costo Mercadería', data: DFIN.waterfall_anio.map(d=>Math.round(d.costo_total/1e6)),
+         backgroundColor:'rgba(224,85,85,0.7)', stack:'pnl'},
+        {label:'Margen Bruto %', data: DFIN.waterfall_anio.map(d=>d.margen_bruto_pct),
+         type:'line', yAxisID:'y2', borderColor:GREEN, backgroundColor:'transparent',
+         pointBackgroundColor:GREEN, pointRadius:5, borderWidth:2, tension:0.3}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>{
+          if(ctx.dataset.yAxisID==='y2') return ` Margen: ${ctx.parsed.y}%`;
+          return ` ${ctx.dataset.label}: $${ctx.parsed.y}M`;
+        }}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT}},
+        y:{stacked:true, grid:{color:GRID},ticks:{color:TEXT, callback:v=>'$'+v+'M'}},
+        y2:{position:'right', grid:{drawOnChartArea:false}, ticks:{color:GREEN, callback:v=>v+'%'}, min:60, max:95}
+      }
+    }
+  });
+
+  // ── Food Cost % evolución ────────────────────────────────
+  new Chart(document.getElementById('chartFoodCostEv'), {
+    type:'line',
+    data:{
+      labels: anios,
+      datasets:[
+        {label:'Margen Bruto %', data: DFIN.waterfall_anio.map(d=>d.margen_bruto_pct),
+         borderColor:GOLD, backgroundColor:'rgba(201,168,76,0.1)', fill:true,
+         pointBackgroundColor:GOLD, pointRadius:5, tension:0.3, borderWidth:2},
+        {label:'Food Cost %', data: DFIN.waterfall_anio.map(d=>d.food_cost_pct),
+         borderColor:RED, backgroundColor:'rgba(224,85,85,0.08)', fill:true,
+         pointBackgroundColor:RED, pointRadius:5, tension:0.3, borderWidth:2},
+        {label:'Descuentos %', data: DFIN.waterfall_anio.map(d=>d.desc_pct),
+         borderColor:ORANGE, backgroundColor:'transparent',
+         pointBackgroundColor:ORANGE, pointRadius:5, tension:0.3, borderWidth:2, borderDash:[5,4]},
+        {label:'Propinas %', data: DFIN.waterfall_anio.map(d=>d.prop_pct),
+         borderColor:TEAL, backgroundColor:'transparent',
+         pointBackgroundColor:TEAL, pointRadius:5, tension:0.3, borderWidth:2}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT}},
+        y:{grid:{color:GRID},ticks:{color:TEXT,callback:v=>v+'%'}}
+      }
+    }
+  });
+
+  // ── Composición de órdenes (donut) ───────────────────────
+  const compColors = [GOLD,'rgba(85,153,255,0.85)','rgba(76,175,130,0.85)','rgba(136,136,170,0.6)'];
+  new Chart(document.getElementById('chartCompOrdenes'), {
+    type:'doughnut',
+    data:{
+      labels: DFIN.composicion_ordenes.map(d=>d.tipo),
+      datasets:[{data: DFIN.composicion_ordenes.map(d=>d.count),
+        backgroundColor: compColors, borderColor:'#0d0d14', borderWidth:2}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>{
+          const d=DFIN.composicion_ordenes[ctx.dataIndex];
+          return [` ${d.pct}% de boletas (${fmtN(d.count)})`, ` Ticket prom: $${fmtN(d.ticket_prom)}`];
+        }}}
+      }
+    }
+  });
+  document.getElementById('tablaCompOrdenes').innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="color:var(--text-muted);font-size:0.78rem">
+        <th style="text-align:left;padding:6px 8px">Tipo</th>
+        <th style="text-align:right;padding:6px 8px">Boletas</th>
+        <th style="text-align:right;padding:6px 8px">%</th>
+        <th style="text-align:right;padding:6px 8px">Ticket Prom.</th>
+      </tr></thead><tbody>
+      ${DFIN.composicion_ordenes.map((d,i)=>`
+        <tr style="border-top:1px solid #2a2a3e">
+          <td style="padding:7px 8px;font-size:0.82rem">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${compColors[i]};margin-right:6px"></span>${d.tipo}
+          </td>
+          <td style="text-align:right;padding:7px 8px;font-size:0.82rem">${fmtN(d.count)}</td>
+          <td style="text-align:right;padding:7px 8px;font-size:0.82rem;color:var(--gold)">${d.pct}%</td>
+          <td style="text-align:right;padding:7px 8px;font-size:0.82rem">$${fmtN(d.ticket_prom)}</td>
+        </tr>`).join('')}
+    </tbody></table>`;
+
+  // ── Duración visitas ─────────────────────────────────────
+  new Chart(document.getElementById('chartDuracion'), {
+    type:'bar',
+    data:{
+      labels: DFIN.dist_duracion.map(d=>d.rango),
+      datasets:[
+        {label:'Cantidad de visitas', data: DFIN.dist_duracion.map(d=>d.count),
+         backgroundColor: DFIN.dist_duracion.map(d=>d.ticket_prom>60000?'rgba(76,175,130,0.75)':d.ticket_prom>40000?'rgba(201,168,76,0.75)':'rgba(85,153,255,0.65)'),
+         yAxisID:'y'},
+        {label:'Ticket Promedio', data: DFIN.dist_duracion.map(d=>d.ticket_prom),
+         type:'line', yAxisID:'y2', borderColor:GOLD, backgroundColor:'transparent',
+         pointBackgroundColor:GOLD, pointRadius:5, borderWidth:2, tension:0.3}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.yAxisID==='y2'?` Ticket: $${fmtN(ctx.parsed.y)}`:` Visitas: ${fmtN(ctx.parsed.y)}`}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT}},
+        y:{grid:{color:GRID},ticks:{color:TEXT}},
+        y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:GOLD,callback:v=>'$'+Math.round(v/1000)+'K'}}
+      }
+    }
+  });
+
+  // ── Productividad operacional ─────────────────────────────
+  new Chart(document.getElementById('chartProdOp'), {
+    type:'line',
+    data:{
+      labels: DFIN.prod_operacional.map(d=>d.anio),
+      datasets:[
+        {label:'Órdenes / noche', data: DFIN.prod_operacional.map(d=>d.ord_x_noche),
+         borderColor:GOLD, pointBackgroundColor:GOLD, pointRadius:5, tension:0.3, borderWidth:2, yAxisID:'y'},
+        {label:'Clientes / noche', data: DFIN.prod_operacional.map(d=>d.cli_x_noche),
+         borderColor:BLUE, pointBackgroundColor:BLUE, pointRadius:5, tension:0.3, borderWidth:2, yAxisID:'y'},
+        {label:'Ingresos / noche ($M)', data: DFIN.prod_operacional.map(d=>Math.round(d.ing_x_noche/1e6*10)/10),
+         borderColor:GREEN, pointBackgroundColor:GREEN, pointRadius:5, tension:0.3, borderWidth:2, yAxisID:'y2'}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.yAxisID==='y2'?` Ing/noche: $${ctx.parsed.y}M`:` ${ctx.dataset.label}: ${ctx.parsed.y}`}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT}},
+        y:{grid:{color:GRID},ticks:{color:TEXT},title:{display:true,text:'órdenes / clientes',color:TEXT}},
+        y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:GREEN,callback:v=>'$'+v+'M'}}
+      }
+    }
+  });
+
+  // ── Food cost % por categoría (horizontal bar) ───────────
+  const sorted = [...DFIN.food_cost_cat].sort((a,b)=>a.fc_pct-b.fc_pct);
+  new Chart(document.getElementById('chartFcCat'), {
+    type:'bar',
+    data:{
+      labels: sorted.map(d=>d.cat),
+      datasets:[{
+        label:'Food Cost %',
+        data: sorted.map(d=>d.fc_pct),
+        backgroundColor: sorted.map(d=>d.fc_pct<20?'rgba(76,175,130,0.8)':d.fc_pct<25?'rgba(201,168,76,0.8)':'rgba(224,85,85,0.75)'),
+        borderRadius:4
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>` Food Cost: ${ctx.parsed.x}%  →  Margen: ${(100-ctx.parsed.x).toFixed(1)}%`}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT,callback:v=>v+'%'},max:35},
+        y:{grid:{color:GRID},ticks:{color:TEXT,font:{size:11}}}
+      }
+    }
+  });
+
+  // ── Propinas por día ─────────────────────────────────────
+  new Chart(document.getElementById('chartPropDia'), {
+    type:'bar',
+    data:{
+      labels: DFIN.prop_por_dia.map(d=>d.dia),
+      datasets:[
+        {label:'Propinas ($M)', data: DFIN.prop_por_dia.map(d=>Math.round(d.propinas/1e6)),
+         backgroundColor:'rgba(68,204,187,0.75)', yAxisID:'y'},
+        {label:'% sobre ventas', data: DFIN.prop_por_dia.map(d=>d.pct),
+         type:'line', yAxisID:'y2', borderColor:GOLD, backgroundColor:'transparent',
+         pointBackgroundColor:GOLD, pointRadius:5, borderWidth:2, tension:0.3}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.yAxisID==='y2'?` Prop %: ${ctx.parsed.y}%`:` Propinas: $${ctx.parsed.y}M`}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT}},
+        y:{grid:{color:GRID},ticks:{color:TEXT,callback:v=>'$'+v+'M'}},
+        y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:GOLD,callback:v=>v+'%'},min:8,max:10.5}
+      }
+    }
+  });
+
+  // ── Descuentos vs Propinas vs IVA ──────────────────────
+  new Chart(document.getElementById('chartTicketComp'), {
+    type:'bar',
+    data:{
+      labels: DFIN.waterfall_anio.map(d=>d.anio),
+      datasets:[
+        {label:'Descuentos %', data: DFIN.waterfall_anio.map(d=>d.desc_pct),
+         backgroundColor:'rgba(224,85,85,0.75)', borderRadius:4},
+        {label:'Propinas %', data: DFIN.waterfall_anio.map(d=>d.prop_pct),
+         backgroundColor:'rgba(68,204,187,0.75)', borderRadius:4},
+        {label:'IVA %', data: DFIN.waterfall_anio.map(d=>d.iva_pct),
+         backgroundColor:'rgba(85,153,255,0.60)', borderRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c0c0d0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}%`}}
+      },
+      scales:{
+        x:{grid:{color:GRID},ticks:{color:TEXT}},
+        y:{grid:{color:GRID},ticks:{color:TEXT,callback:v=>v+'%'}}
+      }
+    }
+  });
+
+  // ── Top mesas ────────────────────────────────────────────
+  document.getElementById('tablaMesas').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead><tr style="color:var(--text-muted);font-size:0.75rem;border-bottom:1px solid #2a2a3e">
+        <th style="padding:8px 12px;text-align:left">#</th>
+        <th style="padding:8px 12px;text-align:left">Mesa</th>
+        <th style="padding:8px 12px;text-align:right">Ingresos</th>
+        <th style="padding:8px 12px;text-align:right">Órdenes</th>
+        <th style="padding:8px 12px;text-align:right">Clientes</th>
+        <th style="padding:8px 12px;text-align:right">Ticket Prom.</th>
+        <th style="padding:8px 12px;text-align:right">Propinas</th>
+        <th style="padding:8px 12px;text-align:left">Relevancia</th>
+      </tr></thead>
+      <tbody>
+        ${DFIN.top_mesas.map((m,i)=>{
+          const bar = Math.round(m.ingresos/DFIN.top_mesas[0].ingresos*100);
+          const isVip = m.ticket_prom > 150000;
+          return `<tr style="border-top:1px solid #1e1e2e;${i<3?'background:rgba(201,168,76,0.04)':''}">
+            <td style="padding:8px 12px;color:var(--text-muted)">${i+1}</td>
+            <td style="padding:8px 12px;font-weight:600;color:var(--gold)">${m.mesa}${isVip?' <span style="font-size:0.7rem;background:rgba(201,168,76,.2);color:var(--gold);padding:1px 5px;border-radius:4px;margin-left:4px">VIP</span>':''}</td>
+            <td style="padding:8px 12px;text-align:right">$${fmtN(Math.round(m.ingresos/1e6))}M</td>
+            <td style="padding:8px 12px;text-align:right">${fmtN(m.ordenes)}</td>
+            <td style="padding:8px 12px;text-align:right">${fmtN(m.clientes)}</td>
+            <td style="padding:8px 12px;text-align:right">$${fmtN(m.ticket_prom)}</td>
+            <td style="padding:8px 12px;text-align:right;color:#44ccbb">$${fmtN(Math.round(m.propinas/1e6))}M</td>
+            <td style="padding:8px 12px">
+              <div style="background:#1e1e2e;border-radius:4px;height:8px;width:120px">
+                <div style="background:var(--gold);width:${bar}%;height:8px;border-radius:4px"></div>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ============================================================
+// SECTION: CONTEXTO & MERCADO
+// ============================================================
+function initContexto() {
+  const C = DCTX;
+  const corr = C.correlaciones;
+
+  // --- KPIs de correlación (r Pearson, período post fin restricciones oct-2022) ---
+  const nivel = r => {
+    const a = Math.abs(r);
+    if (a >= 0.7) return ['Fuerte', a >= 0 ? GREEN : RED];
+    if (a >= 0.4) return ['Moderada', GOLD];
+    if (a >= 0.2) return ['Débil', ORANGE];
+    return ['Nula', '#8888aa'];
+  };
+  const kpis = [
+    { label: 'Correlación IMACEC', r: corr.imacec.post.r, sub: 'actividad económica', icon: '🏭' },
+    { label: 'Correlación IPC', r: corr.ipc.post.r, sub: 'inflación 12 meses', icon: '📈' },
+    { label: 'Correlación Desempleo', r: corr.desempleo.post.r, sub: 'tasa nacional INE', icon: '👷' },
+    { label: 'Correlación Dólar', r: corr.usd.post.r, sub: 'USD/CLP promedio mes', icon: '💵' },
+  ];
+  document.getElementById('kpiCtxGrid').innerHTML = kpis.map(k => {
+    const [lvl, col] = nivel(k.r);
+    return `
+    <div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${col}">r = ${k.r > 0 ? '+' : ''}${k.r.toFixed(2)}</div>
+      <div class="kpi-sub">${lvl} · ${k.sub} · n=${corr.imacec.post.n} meses</div>
+      <div class="kpi-icon">${k.icon}</div>
+    </div>`;
+  }).join('');
+
+  const mesLbl = C.labels.map(m => {
+    const [y, mm] = m.split('-');
+    return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][+mm-1] + ' ' + y.slice(2);
+  });
+  const lineOpts = (yTitle) => ({
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+      y: { grid: { color: '#2a2a3e' }, title: { display: !!yTitle, text: yTitle } }
+    }
+  });
+
+  // --- Chart 1: Ventas YoY vs IMACEC ---
+  destroyChart('ctxImacec');
+  charts.ctxImacec = new Chart(document.getElementById('chartCtxImacec'), {
+    type: 'line',
+    data: { labels: mesLbl, datasets: [
+      { label: 'Ventas bar var % a/a', data: C.ventas_yoy, borderColor: GOLD, backgroundColor: 'rgba(201,168,76,0.12)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+      { label: 'IMACEC var % a/a', data: C.imacec, borderColor: BLUE, tension: 0.35, pointRadius: 0, borderWidth: 2 }
+    ]},
+    options: lineOpts('%')
+  });
+
+  // --- Chart 2: Nominal vs Real ---
+  destroyChart('ctxReal');
+  charts.ctxReal = new Chart(document.getElementById('chartCtxReal'), {
+    type: 'line',
+    data: { labels: mesLbl, datasets: [
+      { label: 'Crecimiento nominal % a/a', data: C.ventas_yoy, borderColor: GOLD, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+      { label: 'Crecimiento real % a/a (– IPC)', data: C.ventas_real_yoy, borderColor: GREEN, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+      { label: 'IPC 12m %', data: C.ipc, borderColor: RED, borderDash: [5,4], tension: 0.35, pointRadius: 0, borderWidth: 1.5 }
+    ]},
+    options: lineOpts('%')
+  });
+
+  // --- Chart 3: Desempleo (eje derecho invertido) ---
+  destroyChart('ctxDesempleo');
+  charts.ctxDesempleo = new Chart(document.getElementById('chartCtxDesempleo'), {
+    type: 'line',
+    data: { labels: mesLbl, datasets: [
+      { label: 'Ventas bar var % a/a', data: C.ventas_yoy, borderColor: GOLD, tension: 0.35, pointRadius: 0, borderWidth: 2, yAxisID: 'y' },
+      { label: 'Desempleo % (eje der. invertido)', data: C.desempleo, borderColor: PURPLE, tension: 0.35, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+        y: { grid: { color: '#2a2a3e' }, title: { display: true, text: 'Ventas %' } },
+        y2: { position: 'right', reverse: true, grid: { display: false }, title: { display: true, text: 'Desempleo %' } }
+      }
+    }
+  });
+
+  // --- Chart 4: Dólar ---
+  destroyChart('ctxUsd');
+  charts.ctxUsd = new Chart(document.getElementById('chartCtxUsd'), {
+    type: 'line',
+    data: { labels: mesLbl, datasets: [
+      { label: 'Ventas bar var % a/a', data: C.ventas_yoy, borderColor: GOLD, tension: 0.35, pointRadius: 0, borderWidth: 2, yAxisID: 'y' },
+      { label: 'USD/CLP promedio', data: C.usd, borderColor: TEAL, tension: 0.35, pointRadius: 0, borderWidth: 2, yAxisID: 'y2' }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+        y: { grid: { color: '#2a2a3e' }, title: { display: true, text: 'Ventas %' } },
+        y2: { position: 'right', grid: { display: false }, title: { display: true, text: '$/USD' } }
+      }
+    }
+  });
+
+  // --- Tabla de eventos ---
+  const badge = imp => {
+    const map = { alza: ['▲ Alza', GREEN], baja: ['▼ Baja', RED], neutro: ['— Neutro', '#8888aa'] };
+    const [txt, col] = map[imp] || map.neutro;
+    return `<span style="color:${col};font-weight:600;font-size:0.78rem">${txt}</span>`;
+  };
+  const varCell = v => {
+    if (v === null || v === undefined) return '<span class="td-muted">s/d</span>';
+    const col = v > 3 ? GREEN : v < -3 ? RED : '#aaaacc';
+    return `<span style="color:${col}">${v > 0 ? '+' : ''}${v.toFixed(1)}%</span>`;
+  };
+  const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('tablaEventos').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Mes</th><th>Evento</th><th>Impacto esperado</th>
+        <th class="td-num">Ventas m/m</th><th class="td-num">Ventas a/a</th>
+      </tr></thead>
+      <tbody>
+        ${C.eventos.map(e => {
+          const [y, m] = e.mes.split('-');
+          return `<tr>
+            <td style="white-space:nowrap;font-size:0.82rem">${MESES_ES[+m-1]} ${y}</td>
+            <td style="font-size:0.82rem">${e.evento}</td>
+            <td>${badge(e.impacto)}</td>
+            <td class="td-num" style="font-size:0.82rem">${varCell(e.var_mm)}</td>
+            <td class="td-num" style="font-size:0.82rem">${varCell(e.var_yoy)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+  // --- Conclusiones ---
+  const insights = [
+    { icon: '🎯', title: 'Las ventas sí siguen el ciclo económico', color: GOLD,
+      text: `La correlación con el IMACEC es moderada y positiva (r=+0,47): cuando la economía chilena acelera, el bar vende más, y viceversa. No es una relación 1:1 — la estacionalidad propia (ene/sep/dic altos, feb bajo) y la gestión interna siguen pesando más — pero el IMACEC es un buen termómetro anticipado para planificar.` },
+    { icon: '📉', title: '2026: el ciclo está pasando la cuenta', color: RED,
+      text: `Con 5 IMACEC negativos consecutivos (ene–may 2026) y desempleo 9,4% (máximo en 5 años), las ventas cayeron a/a en 4 de los últimos 6 meses (mar −23,6%, jun −19,7%). Coherente con la correlación positiva al IMACEC: en recesión conviene defender frecuencia con promociones de ticket medio, no subir precios.` },
+    { icon: '💸', title: 'La inflación alta frena el consumo', color: ORANGE,
+      text: `La correlación con el IPC es moderada y negativa (r=−0,43): los meses de inflación alta (peak 14,1% en ago 2022) coinciden con crecimientos débiles de ventas — el bolsillo apretado golpea la salida a bares. Además, el crecimiento real (descontando IPC) es varios puntos menor al nominal: para crecer en volumen hay que traer más clientes, no solo reajustar la carta.` },
+    { icon: '💵', title: 'Dólar: correlación positiva, pero cuidado', color: TEAL,
+      text: `El r=+0,55 con el USD/CLP refleja principalmente que ambas series suben en el tiempo (tendencia común), no que un dólar caro haga vender más. Lo operacionalmente relevante es el costo: con dólar sobre $950 los insumos importados (licores, vinos) presionan el margen — conviene empujar categorías de bajo food cost (Por Copa 15%, Spritz 18%, Schop 18%).` },
+    { icon: '📅', title: 'Los eventos puntuales sí se notan', color: PURPLE,
+      text: `El fin del pase de movilidad (oct 2022), los Panamericanos (oct 2023) y las Fiestas Patrias marcan alzas visibles; ley seca por elecciones, el apagón de feb 2025 y los frentes de lluvia marcan bajas. Vale la pena planificar turnos y stock con el calendario de eventos de Santiago.` },
+    { icon: '📊', title: 'Fuentes y método', color: '#8888aa',
+      text: `IMACEC e IPC: Banco Central de Chile / INE (IPC 2021–2025 encadenado ±0,3pp). Dólar observado y desempleo: BCCh / INE vía mindicador.cl. Correlación de Pearson sobre variaciones interanuales de ventas, oct 2022 – jun 2026. Se excluyen los meses con cierre total o parcial del bar (feb–abr 2022 y feb 2023, verificado por noches de operación) — tanto como dato como base de comparación — y julio 2026 por ser mes parcial.` },
+  ];
+  document.getElementById('ctxInsights').innerHTML = insights.map(i => `
+    <div style="background:var(--card2);border-radius:10px;padding:16px;border-left:3px solid ${i.color}">
+      <div style="font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:6px">${i.icon} ${i.title}</div>
+      <div style="font-size:0.8rem;color:#aaaacc;line-height:1.5">${i.text}</div>
+    </div>`).join('');
+}
+
+function initRecomendaciones() {
+  const grid = document.getElementById('recsGrid');
+  grid.innerHTML = RECS.map(r => `
+    <div class="rec-card">
+      <div class="rec-header">
+        <span class="rec-icon">${r.icon}</span>
+        <div>
+          <div class="rec-title">${r.title}</div>
+          <span class="badge badge-${r.urgencia}">${r.urgencia_label}</span>
+        </div>
+      </div>
+      <div class="rec-body">${r.body}</div>
+      <div class="rec-action">
+        <strong>Acción Propuesta</strong>
+        ${r.accion}
+      </div>
+      <div class="rec-footer">
+        <span class="rec-impact">Impacto estimado: <strong style="color:${r.impacto==='Alto'?GREEN:r.impacto==='Medio'?GOLD:BLUE}">${r.impacto}</strong></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initResumen();
+  sectionInited['resumen'] = true;
+
+  // Intersection observer for KPI animation
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        // Re-trigger if needed
+      }
+    });
+  });
+  const kpiGrid = document.getElementById('kpi-grid');
+  if (kpiGrid) observer.observe(kpiGrid);
+});
+</script>
+</body>
+</html>
